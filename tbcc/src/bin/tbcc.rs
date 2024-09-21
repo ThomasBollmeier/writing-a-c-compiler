@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Args, Parser};
 use regex::Regex;
 use std::io::Result;
 use std::process::Command;
@@ -12,6 +12,24 @@ use std::process::Command;
 struct Options {
     #[arg(help = "The input file to compile")]
     input_file: String,
+    #[command(flatten)]
+    mode: CompilerMode,
+}
+
+#[derive(Args, Clone)]
+#[group(multiple = false)]
+struct CompilerMode {
+    #[arg(long, help = "Run Lexer on the input file and exit")]
+    lex: bool,
+    #[arg(long, help = "Parse the input file and exit")]
+    parse: bool,
+    #[arg(
+        long,
+        help = "Lex, parse and assemble the input file and exit before code emission"
+    )]
+    codegen: bool,
+    #[arg(short = 'S', help = "Compile the input file and exit")]
+    create_assembly: bool,
 }
 
 fn main() -> Result<()> {
@@ -22,10 +40,10 @@ fn main() -> Result<()> {
     let assembly_file = compile_file(&preprocessed_file)?;
     remove_file(&preprocessed_file)?;
 
-    let object_file = assemble_link_file(&assembly_file)?;
+    let exec_file = assemble_link_file(&assembly_file)?;
     remove_file(&assembly_file)?;
 
-    println!("Compiled to {}", object_file);
+    println!("Compiled to {}", exec_file);
 
     Ok(())
 }
