@@ -1,10 +1,11 @@
 [package]
 name = "tbcc"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
 regex = "1.10.6"
+anyhow = "1.0.40"
 
 [dependencies.clap]
 version = "4"

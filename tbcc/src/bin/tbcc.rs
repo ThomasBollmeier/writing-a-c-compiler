@@ -1,6 +1,6 @@
+use anyhow::{anyhow, Result};
 use clap::{Args, Parser};
 use regex::Regex;
-use std::io::Result;
 use std::process::Command;
 
 #[derive(Parser)]
@@ -32,12 +32,16 @@ struct CompilerMode {
     create_assembly: bool,
 }
 
-fn main() -> Result<()> {
+fn main() {
     let options = Options::parse();
+    let return_code = if run_compiler(&options).is_ok() { 0 } else { 1 };
+    std::process::exit(return_code);
+}
 
+fn run_compiler(options: &Options) -> Result<()> {
     let preprocessed_file = preprocess_file(&options.input_file)?;
 
-    let assembly_file = compile_file(&preprocessed_file)?;
+    let assembly_file = compile_file(&preprocessed_file, options)?;
     remove_file(&preprocessed_file)?;
 
     let exec_file = assemble_link_file(&assembly_file)?;
@@ -65,13 +69,13 @@ fn preprocess_file(source_file: &str) -> Result<String> {
         .output()?;
 
     if !output.status.success() {
-        panic!("Failed to preprocess file");
+        return Err(anyhow!("Failed to preprocess file"));
     }
 
     Ok(output_file)
 }
 
-fn compile_file(preprocessed_file: &str) -> Result<String> {
+fn compile_file(preprocessed_file: &str, _options: &Options) -> Result<String> {
     let base_name = strip_extension(preprocessed_file);
     let output_file = format!("{}.s", base_name);
     let output = Command::new("gcc")
@@ -82,7 +86,7 @@ fn compile_file(preprocessed_file: &str) -> Result<String> {
         .output()?;
 
     if !output.status.success() {
-        panic!("Failed to compile file");
+        return Err(anyhow!("Failed to compile file"));
     }
 
     Ok(output_file)
@@ -104,5 +108,6 @@ fn assemble_link_file(assembly_file: &str) -> Result<String> {
 }
 
 fn remove_file(file_name: &str) -> Result<()> {
-    std::fs::remove_file(file_name)
+    std::fs::remove_file(file_name)?;
+    Ok(())
 }
