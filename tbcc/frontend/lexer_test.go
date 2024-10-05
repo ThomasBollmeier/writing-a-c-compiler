@@ -1,6 +1,8 @@
 package frontend
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -67,9 +69,7 @@ func TestTokenize(t *testing.T) {
 		{
 			"it works",
 			args{
-				`int main() {
-						return 2;
-			 		}`,
+				readTestCode("it_works.c"),
 			},
 			[]TokenType{
 				TokTypeInt,
@@ -87,8 +87,7 @@ func TestTokenize(t *testing.T) {
 		{
 			"end before expr",
 			args{
-				`int main() {
-						return`,
+				readTestCode("end_before_expr.c"),
 			},
 			[]TokenType{
 				TokTypeInt,
@@ -118,4 +117,16 @@ func TestTokenize(t *testing.T) {
 			}
 		})
 	}
+}
+
+func readTestCode(sourceFile string) string {
+	fileDir, err := filepath.Abs("./")
+	if err != nil {
+		panic(err)
+	}
+	fileContents, err := os.ReadFile(fileDir + "/testdata/" + sourceFile)
+	if err != nil {
+		panic(err)
+	}
+	return string(fileContents)
 }
