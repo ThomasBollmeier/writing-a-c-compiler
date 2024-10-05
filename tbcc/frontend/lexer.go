@@ -31,12 +31,7 @@ func Tokenize(code string) ([]Token, error) {
 func updatePosition(tokenPtr *Token, pos Position) Position {
 	newPos := pos
 	for _, ch := range tokenPtr.lexeme {
-		if string(ch) != "\n" {
-			newPos.Col += 1
-		} else {
-			newPos.Line += 1
-			newPos.Col = 1
-		}
+		newPos = newPos.Advance(ch)
 	}
 	return newPos
 }
@@ -87,12 +82,7 @@ func skipWhitespace(code string, startPos Position) (string, Position) {
 		if !unicode.IsSpace(ch) {
 			return code[i:], pos
 		}
-		if string(ch) != "\n" {
-			pos.Col += 1
-		} else {
-			pos.Line += 1
-			pos.Col = 1
-		}
+		pos = pos.Advance(ch)
 	}
 	return "", pos
 }

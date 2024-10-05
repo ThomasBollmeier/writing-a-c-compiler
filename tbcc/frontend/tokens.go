@@ -36,6 +36,14 @@ type Position struct {
 	Line, Col int
 }
 
+func (p Position) Advance(ch rune) Position {
+	if string(ch) != "\n" {
+		return Position{p.Line, p.Col + 1}
+	} else {
+		return Position{p.Line + 1, 1}
+	}
+}
+
 type Token struct {
 	tokenType TokenType
 	lexeme    string
