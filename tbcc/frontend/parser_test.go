@@ -32,6 +32,27 @@ func TestNewParser(t *testing.T) {
 
 }
 
+func TestParser_ParseProgram(t *testing.T) {
+	code := `
+int main(void) {
+	return 42;
+}`
+	tokens, err := Tokenize(code)
+	if err != nil {
+		t.Errorf("Tokenize() error = %v", err)
+	}
+	parser := NewParser(tokens)
+
+	program, err := parser.ParseProgram()
+	if err != nil {
+		t.Errorf("ParseProgram() error = %v", err)
+	}
+
+	if program.GetType() != AstProgram {
+		t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
+	}
+}
+
 func TestParser_consume(t *testing.T) {
 
 	p := createParser()
