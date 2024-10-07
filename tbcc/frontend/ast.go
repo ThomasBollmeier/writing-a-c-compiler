@@ -52,7 +52,7 @@ type Statement interface {
 }
 
 type ReturnStmt struct {
-	expression Expression
+	Expression Expression
 }
 
 func (r *ReturnStmt) GetType() AstType {

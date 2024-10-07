@@ -34,7 +34,7 @@ func (ap *AstPrinter) VisitFunction(f *Function) {
 func (ap *AstPrinter) VisitReturn(r *ReturnStmt) {
 	ap.println("Return(")
 	ap.indent()
-	r.expression.Accept(ap)
+	r.Expression.Accept(ap)
 	ap.dedent()
 	ap.println(")")
 }
