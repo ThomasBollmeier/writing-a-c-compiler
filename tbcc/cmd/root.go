@@ -110,11 +110,12 @@ func compile(preProcessedFile string, options Options) (string, error) {
 
 	// Run parser
 	parser := frontend.NewParser(tokens)
-	_, err = parser.ParseProgram()
+	program, err := parser.ParseProgram()
 	if err != nil {
 		return "", err
 	}
 	if options.stopAfterParse {
+		program.Accept(frontend.NewAstPrinter(4))
 		return "", nil
 	}
 
