@@ -37,6 +37,19 @@ func TestParser_ParseProgram(t *testing.T) {
 int main(void) {
 	return 42;
 }`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseProgramFail(t *testing.T) {
+	code := `
+int main(void) {
+	return 42;
+}
+foo`
+	runParserWithCode(t, code, true)
+}
+
+func runParserWithCode(t *testing.T, code string, expectError bool) {
 	tokens, err := Tokenize(code)
 	if err != nil {
 		t.Errorf("Tokenize() error = %v", err)
@@ -44,12 +57,19 @@ int main(void) {
 	parser := NewParser(tokens)
 
 	program, err := parser.ParseProgram()
-	if err != nil {
-		t.Errorf("ParseProgram() error = %v", err)
-	}
 
-	if program.GetType() != AstProgram {
-		t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
+	if !expectError {
+		if err != nil {
+			t.Errorf("ParseProgram() error = %v", err)
+		}
+
+		if program.GetType() != AstProgram {
+			t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
+		}
+	} else {
+		if err == nil {
+			t.Errorf("ParseProgram() should have returned an error")
+		}
 	}
 }
 

@@ -100,11 +100,21 @@ func compile(preProcessedFile string, options Options) (string, error) {
 	}
 
 	// Run lexer
-	_, err = frontend.Tokenize(string(fileContent))
+	tokens, err := frontend.Tokenize(string(fileContent))
 	if err != nil {
 		return "", err
 	}
 	if options.stopAfterLex {
+		return "", nil
+	}
+
+	// Run parser
+	parser := frontend.NewParser(tokens)
+	_, err = parser.ParseProgram()
+	if err != nil {
+		return "", err
+	}
+	if options.stopAfterParse {
 		return "", nil
 	}
 

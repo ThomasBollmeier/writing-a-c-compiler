@@ -25,6 +25,9 @@ func (p *Parser) ParseProgram() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !p.endOfInput() {
+		return nil, errors.New("expected end of input")
+	}
 	return &Program{*f}, nil
 }
 
@@ -129,4 +132,8 @@ func (p *Parser) peekN(n int) []Token {
 	lastIdx := p.currIdx + n - 1
 	lastIdx = min(lastIdx, p.maxIdx)
 	return p.tokens[p.currIdx : lastIdx+1]
+}
+
+func (p *Parser) endOfInput() bool {
+	return p.currIdx > p.maxIdx
 }

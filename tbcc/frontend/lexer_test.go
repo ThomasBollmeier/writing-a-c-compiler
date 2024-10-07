@@ -99,6 +99,14 @@ func TestTokenize(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"invalid @ sign",
+			args{
+				readTestCode("at_sign.c"),
+			},
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
