@@ -66,6 +66,9 @@ func runParserWithCode(t *testing.T, code string, expectError bool) {
 		if program.GetType() != AstProgram {
 			t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
 		}
+
+		program.Accept(NewAstPrinter(4))
+
 	} else {
 		if err == nil {
 			t.Errorf("ParseProgram() should have returned an error")

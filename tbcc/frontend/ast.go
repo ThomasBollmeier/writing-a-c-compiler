@@ -16,27 +16,27 @@ type AST interface {
 }
 
 type AstVisitor interface {
-	visitProgram(p *Program)
-	visitFunction(f *Function)
-	visitReturn(r *ReturnStmt)
-	visitInteger(i *IntegerLiteral)
-	visitIdentifier(id *Identifier)
+	VisitProgram(p *Program)
+	VisitFunction(f *Function)
+	VisitReturn(r *ReturnStmt)
+	VisitInteger(i *IntegerLiteral)
+	VisitIdentifier(id *Identifier)
 }
 
 type Program struct {
-	function Function
+	Func Function
 }
 
 func (p *Program) GetType() AstType {
 	return AstProgram
 }
 func (p *Program) Accept(visitor AstVisitor) {
-	visitor.visitProgram(p)
+	visitor.VisitProgram(p)
 }
 
 type Function struct {
-	name string
-	body Statement
+	Name string
+	Body Statement
 }
 
 func (f *Function) GetType() AstType {
@@ -44,7 +44,7 @@ func (f *Function) GetType() AstType {
 }
 
 func (f *Function) Accept(visitor AstVisitor) {
-	visitor.visitFunction(f)
+	visitor.VisitFunction(f)
 }
 
 type Statement interface {
@@ -60,7 +60,7 @@ func (r *ReturnStmt) GetType() AstType {
 }
 
 func (r *ReturnStmt) Accept(visitor AstVisitor) {
-	visitor.visitReturn(r)
+	visitor.VisitReturn(r)
 }
 
 type Expression interface {
@@ -68,7 +68,7 @@ type Expression interface {
 }
 
 type IntegerLiteral struct {
-	value int
+	Value int
 }
 
 func (i *IntegerLiteral) GetType() AstType {
@@ -76,11 +76,11 @@ func (i *IntegerLiteral) GetType() AstType {
 }
 
 func (i *IntegerLiteral) Accept(visitor AstVisitor) {
-	visitor.visitInteger(i)
+	visitor.VisitInteger(i)
 }
 
 type Identifier struct {
-	value string
+	Value string
 }
 
 func (id *Identifier) GetType() AstType {
@@ -88,5 +88,5 @@ func (id *Identifier) GetType() AstType {
 }
 
 func (id *Identifier) Accept(visitor AstVisitor) {
-	visitor.visitIdentifier(id)
+	visitor.VisitIdentifier(id)
 }
