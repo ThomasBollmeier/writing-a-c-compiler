@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/backend"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
 	"os"
 	"os/exec"
@@ -14,7 +15,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.1.1",
+	Version: "0.1.2",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)
@@ -47,7 +48,7 @@ func run(args []string) error {
 		if preProcessedFile != "" && fileExists(preProcessedFile) {
 			_ = os.Remove(preProcessedFile)
 		}
-		if assemblyFile != "" && fileExists(assemblyFile) {
+		if assemblyFile != "" && fileExists(assemblyFile) && !*stopAfterCodeEmission {
 			_ = os.Remove(assemblyFile)
 		}
 	}()
@@ -67,6 +68,10 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	} else if assemblyFile == "" {
+		return nil
+	}
+
+	if *stopAfterCodeEmission {
 		return nil
 	}
 
@@ -119,9 +124,18 @@ func compile(preProcessedFile string, options Options) (string, error) {
 		return "", nil
 	}
 
+	// assyembly generation
+	asmProgram := backend.NewAsmTranslator().Translate(program)
+	if options.stopAfterCodegen {
+		asmProgram.Accept(backend.NewAsmPrinter(4))
+		return "", nil
+	}
+
+	// emit code
+	assembly := backend.NewCodeGenerator().GenerateCode(*asmProgram)
 	assemblyFile := stripSuffix(preProcessedFile) + ".s"
-	cmd := exec.Command("gcc", "-S", preProcessedFile, "-o", assemblyFile)
-	err = cmd.Run()
+	err = os.WriteFile(assemblyFile, []byte(assembly), 0666)
+
 	if err != nil {
 		return "", err
 	}
