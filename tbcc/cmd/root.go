@@ -67,11 +67,9 @@ func run(args []string) error {
 
 	if err != nil {
 		return err
-	} else if assemblyFile == "" {
-		return nil
 	}
-
-	if *stopAfterCodeEmission {
+	
+	if assemblyFile == "" || *stopAfterCodeEmission {
 		return nil
 	}
 
