@@ -49,6 +49,17 @@ func (ap *AstPrinter) VisitIdentifier(id *Identifier) {
 	ap.println(text)
 }
 
+func (ap *AstPrinter) VisitUnary(unary *UnaryExpression) {
+	ap.println("Unary(")
+	ap.indent()
+	ap.print("operator=\"" + unary.Operator + "\"\n")
+	ap.print("right=")
+	ap.suppressPadding = true
+	unary.Right.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) indent() {
 	ap.offset += ap.delta
 }

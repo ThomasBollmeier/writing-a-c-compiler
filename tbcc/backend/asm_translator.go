@@ -43,3 +43,7 @@ func (a *AsmTranslator) VisitInteger(i *frontend.IntegerLiteral) {
 func (a *AsmTranslator) VisitIdentifier(*frontend.Identifier) {
 	panic("not implemented")
 }
+
+func (a *AsmTranslator) VisitUnary(u *frontend.UnaryExpression) {
+	panic("not implemented")
+}

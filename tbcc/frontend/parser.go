@@ -86,15 +86,41 @@ func (p *Parser) parseStatement() (Statement, error) {
 }
 
 func (p *Parser) parseExpression() (Expression, error) {
-	intLiteral, err := p.consume(TokTypeIntConstant)
+	token, err := p.peek()
 	if err != nil {
 		return nil, err
 	}
-	value, err := strconv.ParseInt(intLiteral.lexeme, 10, 64)
-	if err != nil {
-		return nil, err
+
+	switch token.tokenType {
+	case TokTypeIntConstant:
+		intLiteral, _ := p.consume()
+		value, err := strconv.ParseInt(intLiteral.lexeme, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return &IntegerLiteral{int(value)}, nil
+	case TokTypeMinus, TokTypeTilde:
+		_, _ = p.consume()
+		operator := token.lexeme
+		right, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryExpression{operator, right}, nil
+	case TokTypeLeftParen:
+		_, _ = p.consume()
+		expr, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		_, err = p.consume(TokTypeRightParen)
+		if err != nil {
+			return nil, err
+		}
+		return expr, nil
+	default:
+		return nil, errors.New("unexpected token: " + token.lexeme)
 	}
-	return &IntegerLiteral{int(value)}, nil
 }
 
 func (p *Parser) consume(expected ...TokenType) (*Token, error) {

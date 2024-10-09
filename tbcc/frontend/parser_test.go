@@ -40,6 +40,14 @@ int main(void) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseUnary(t *testing.T) {
+	code := `
+int main(void) {
+	return ~(-42);
+}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {

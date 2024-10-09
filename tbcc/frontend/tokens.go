@@ -14,6 +14,9 @@ const (
 	TokTypeLeftBrace
 	TokTypeRightBrace
 	TokTypeSemicolon
+	TokTypeTilde
+	TokTypeMinus
+	TokTypeMinusMinus
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -24,6 +27,9 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeLeftBrace:   "{",
 	TokTypeRightBrace:  "}",
 	TokTypeSemicolon:   ";",
+	TokTypeTilde:       "~",
+	TokTypeMinus:       "-",
+	TokTypeMinusMinus:  "--",
 }
 
 var strToKeyword = map[string]TokenType{
