@@ -1,6 +1,8 @@
 package backend
 
-import "github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
+import (
+	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
+)
 
 type AsmTranslator struct {
 	result any
@@ -44,6 +46,6 @@ func (a *AsmTranslator) VisitIdentifier(*frontend.Identifier) {
 	panic("not implemented")
 }
 
-func (a *AsmTranslator) VisitUnary(u *frontend.UnaryExpression) {
+func (a *AsmTranslator) VisitUnary(*frontend.UnaryExpression) {
 	panic("not implemented")
 }

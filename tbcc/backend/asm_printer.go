@@ -1,6 +1,8 @@
 package backend
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AsmPrinter struct {
 	offset          int
