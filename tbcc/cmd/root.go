@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/backend"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
+	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
 	"os"
 	"os/exec"
 	"strings"
@@ -28,6 +29,7 @@ var rootCmd = &cobra.Command{
 type Options struct {
 	stopAfterLex          bool
 	stopAfterParse        bool
+	stopAfterIR           bool
 	stopAfterCodegen      bool
 	stopAfterCodeEmission bool
 }
@@ -35,6 +37,7 @@ type Options struct {
 var (
 	stopAfterLex          *bool = nil
 	stopAfterParse        *bool = nil
+	stopAfterIR           *bool = nil
 	stopAfterCodegen      *bool = nil
 	stopAfterCodeEmission *bool = nil
 )
@@ -61,6 +64,7 @@ func run(args []string) error {
 	assemblyFile, err = compile(preProcessedFile, Options{
 		*stopAfterLex,
 		*stopAfterParse,
+		*stopAfterIR,
 		*stopAfterCodegen,
 		*stopAfterCodeEmission,
 	})
@@ -68,7 +72,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if assemblyFile == "" || *stopAfterCodeEmission {
 		return nil
 	}
@@ -122,6 +126,13 @@ func compile(preProcessedFile string, options Options) (string, error) {
 		return "", nil
 	}
 
+	// Create TACKY
+	emitter := tacky.NewEmitter()
+	emitter.Emit(program)
+	if options.stopAfterIR {
+		return "", nil
+	}
+
 	// assyembly generation
 	asmProgram := backend.NewAsmTranslator().Translate(program)
 	if options.stopAfterCodegen {
@@ -168,7 +179,8 @@ func Execute() {
 func init() {
 	stopAfterLex = rootCmd.PersistentFlags().Bool("lex", false, "stop after lexer")
 	stopAfterParse = rootCmd.PersistentFlags().Bool("parse", false, "stop after parser")
+	stopAfterIR = rootCmd.PersistentFlags().Bool("tacky", false, "stop after tacky generation")
 	stopAfterCodegen = rootCmd.PersistentFlags().Bool("codegen", false, "stop after codegen")
 	stopAfterCodeEmission = rootCmd.PersistentFlags().BoolP("emission", "S", false, "stop after emission")
-	rootCmd.MarkFlagsMutuallyExclusive("lex", "parse", "codegen", "emission")
+	rootCmd.MarkFlagsMutuallyExclusive("lex", "parse", "tacky", "codegen", "emission")
 }

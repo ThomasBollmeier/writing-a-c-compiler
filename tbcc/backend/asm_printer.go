@@ -10,6 +10,36 @@ type AsmPrinter struct {
 	suppressPadding bool
 }
 
+func (ap *AsmPrinter) VisitUnary(u *Unary) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ap *AsmPrinter) VisitNeg(n *Neg) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ap *AsmPrinter) VisitNot(n *Not) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ap *AsmPrinter) VisitPseudoReg(p *PseudoReg) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (ap *AsmPrinter) VisitStack(s *Stack) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewAsmPrinter(delta int) *AsmPrinter {
 	return &AsmPrinter{0, delta, false}
 }
@@ -59,8 +89,8 @@ func (ap *AsmPrinter) VisitImmediate(i *Immediate) {
 	ap.println(text)
 }
 
-func (ap *AsmPrinter) VisitRegister() {
-	ap.println("Register")
+func (ap *AsmPrinter) VisitRegister(r *Register) {
+	ap.println("Register(" + r.Name + ")")
 }
 
 func (ap *AsmPrinter) indent() {

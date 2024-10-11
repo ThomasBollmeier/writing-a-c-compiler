@@ -26,16 +26,16 @@ func (a *AsmTranslator) VisitProgram(p *frontend.Program) {
 func (a *AsmTranslator) VisitFunction(f *frontend.Function) {
 	name := f.Name
 	f.Body.Accept(a)
-	insts := a.result.([]Instruction)
-	a.result = NewFunctionDef(name, insts)
+	instructions := a.result.([]Instruction)
+	a.result = NewFunctionDef(name, instructions)
 }
 
 func (a *AsmTranslator) VisitReturn(r *frontend.ReturnStmt) {
-	var insts []Instruction
+	var instructions []Instruction
 	r.Expression.Accept(a)
-	insts = append(insts, NewMov(a.result.(Operand), NewRegister()))
-	insts = append(insts, NewReturn())
-	a.result = insts
+	instructions = append(instructions, NewMov(a.result.(Operand), NewRegister("AX")))
+	instructions = append(instructions, NewReturn())
+	a.result = instructions
 }
 
 func (a *AsmTranslator) VisitInteger(i *frontend.IntegerLiteral) {

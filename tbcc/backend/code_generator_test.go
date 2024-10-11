@@ -10,7 +10,7 @@ func TestCodeGenerator_GenerateCode(t *testing.T) {
 		FunctionDef{
 			"main",
 			[]Instruction{
-				NewMov(NewImmediate(42), NewRegister()),
+				NewMov(NewImmediate(42), NewRegister("AX")),
 				NewReturn(),
 			},
 		})

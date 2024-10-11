@@ -8,6 +8,36 @@ type CodeGenerator struct {
 	code string
 }
 
+func (cg *CodeGenerator) VisitUnary(u *Unary) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitAllocStack(a *AllocStack) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitNeg(n *Neg) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitNot(n *Not) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitPseudoReg(p *PseudoReg) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitStack(s *Stack) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewCodeGenerator() *CodeGenerator {
 	return &CodeGenerator{}
 }
@@ -56,6 +86,6 @@ func (cg *CodeGenerator) VisitImmediate(i *Immediate) {
 	cg.write(text)
 }
 
-func (cg *CodeGenerator) VisitRegister() {
+func (cg *CodeGenerator) VisitRegister(r *Register) {
 	cg.write("%eax")
 }
