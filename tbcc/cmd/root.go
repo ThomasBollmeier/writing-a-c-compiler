@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.1.2",
+	Version: "0.2.0",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)
@@ -127,14 +127,14 @@ func compile(preProcessedFile string, options Options) (string, error) {
 	}
 
 	// Create TACKY
-	emitter := tacky.NewEmitter()
-	emitter.Emit(program)
+	emitter := tacky.NewTranslator()
+	tackyProgram := emitter.Translate(program)
 	if options.stopAfterIR {
 		return "", nil
 	}
 
-	// assyembly generation
-	asmProgram := backend.NewAsmTranslator().Translate(program)
+	// assembly generation
+	asmProgram := backend.NewTranslator().Translate(tackyProgram)
 	if options.stopAfterCodegen {
 		asmProgram.Accept(backend.NewAsmPrinter(4))
 		return "", nil

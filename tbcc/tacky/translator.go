@@ -5,30 +5,30 @@ import (
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
 )
 
-type Emitter struct {
+type Translator struct {
 	nextCounter uint
 }
 
-func NewEmitter() *Emitter {
-	return &Emitter{0}
+func NewTranslator() *Translator {
+	return &Translator{0}
 }
 
-func (e *Emitter) Emit(progam *frontend.Program) *Program {
-	return &Program{e.emitFunction(&progam.Func)}
+func (t *Translator) Translate(progam *frontend.Program) *Program {
+	return &Program{t.translateFunction(&progam.Func)}
 }
 
-func (e *Emitter) emitFunction(f *frontend.Function) Function {
+func (t *Translator) translateFunction(f *frontend.Function) Function {
 	return Function{
 		f.Name,
-		e.emitBody(f.Body),
+		t.translateBody(f.Body),
 	}
 }
 
-func (e *Emitter) emitBody(body frontend.Statement) []Instruction {
+func (t *Translator) translateBody(body frontend.Statement) []Instruction {
 	switch body.GetType() {
 	case frontend.AstReturn:
 		retStmt := body.(*frontend.ReturnStmt)
-		val, instructions := e.emitExpr(retStmt.Expression)
+		val, instructions := t.translateExpr(retStmt.Expression)
 		instructions = append(instructions, &Return{val})
 		return instructions
 	default:
@@ -36,16 +36,16 @@ func (e *Emitter) emitBody(body frontend.Statement) []Instruction {
 	}
 }
 
-func (e *Emitter) emitExpr(expr frontend.Expression) (Value, []Instruction) {
+func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instruction) {
 	switch expr.GetType() {
 	case frontend.AstInteger:
 		val := expr.(*frontend.IntegerLiteral).Value
 		return &IntConstant{val}, nil
 	case frontend.AstUnary:
 		unary := expr.(*frontend.UnaryExpression)
-		src, instructions := e.emitExpr(unary.Right)
-		dst := &Var{e.createVarName()}
-		unaryOp := e.getUnaryOp(unary.Operator)
+		src, instructions := t.translateExpr(unary.Right)
+		dst := &Var{t.createVarName()}
+		unaryOp := t.getUnaryOp(unary.Operator)
 		instructions = append(instructions, &Unary{unaryOp, src, dst})
 		return dst, instructions
 	default:
@@ -53,13 +53,13 @@ func (e *Emitter) emitExpr(expr frontend.Expression) (Value, []Instruction) {
 	}
 }
 
-func (e *Emitter) createVarName() string {
-	varName := fmt.Sprintf("tmp.%d", e.nextCounter)
-	e.nextCounter++
+func (t *Translator) createVarName() string {
+	varName := fmt.Sprintf("tmp.%d", t.nextCounter)
+	t.nextCounter++
 	return varName
 }
 
-func (e *Emitter) getUnaryOp(op string) UnaryOp {
+func (t *Translator) getUnaryOp(op string) UnaryOp {
 	switch op {
 	case "-":
 		return &Negate{}

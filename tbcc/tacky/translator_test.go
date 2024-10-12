@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-func TestEmitter_Emit(t *testing.T) {
+func TestTranslator_Translate(t *testing.T) {
 	code := `
 int main(void) {
 	return ~(-42);
 }`
 	ast := parse(code)
-	emitter := NewEmitter()
-	program := emitter.Emit(ast)
+	translator := NewTranslator()
+	program := translator.Translate(ast)
 
 	fmt.Println(program)
 }

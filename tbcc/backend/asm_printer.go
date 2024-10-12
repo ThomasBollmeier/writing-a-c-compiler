@@ -10,36 +10,6 @@ type AsmPrinter struct {
 	suppressPadding bool
 }
 
-func (ap *AsmPrinter) VisitUnary(u *Unary) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ap *AsmPrinter) VisitNeg(n *Neg) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ap *AsmPrinter) VisitNot(n *Not) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ap *AsmPrinter) VisitPseudoReg(p *PseudoReg) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (ap *AsmPrinter) VisitStack(s *Stack) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func NewAsmPrinter(delta int) *AsmPrinter {
 	return &AsmPrinter{0, delta, false}
 }
@@ -80,8 +50,34 @@ func (ap *AsmPrinter) VisitMov(m *Mov) {
 	ap.println(")")
 }
 
+func (ap *AsmPrinter) VisitUnary(u *Unary) {
+	ap.println("Unary(")
+	ap.indent()
+	ap.print("op=")
+	ap.suppressPadding = true
+	u.Op.Accept(ap)
+	ap.print("operand=")
+	ap.suppressPadding = true
+	u.Operand.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
+	text := fmt.Sprintf("AllocStack(%d)", a.N)
+	ap.println(text)
+}
+
 func (ap *AsmPrinter) VisitReturn() {
 	ap.println("Ret")
+}
+
+func (ap *AsmPrinter) VisitNeg(*Neg) {
+	ap.println("Neg")
+}
+
+func (ap *AsmPrinter) VisitNot(*Not) {
+	ap.println("Not")
 }
 
 func (ap *AsmPrinter) VisitImmediate(i *Immediate) {
@@ -91,6 +87,16 @@ func (ap *AsmPrinter) VisitImmediate(i *Immediate) {
 
 func (ap *AsmPrinter) VisitRegister(r *Register) {
 	ap.println("Register(" + r.Name + ")")
+}
+
+func (ap *AsmPrinter) VisitPseudoReg(p *PseudoReg) {
+	text := fmt.Sprintf("PseudoReg(%s)", p.Ident)
+	ap.println(text)
+}
+
+func (ap *AsmPrinter) VisitStack(s *Stack) {
+	text := fmt.Sprintf("Stack(%d)", s.N)
+	ap.println(text)
 }
 
 func (ap *AsmPrinter) indent() {

@@ -17,7 +17,7 @@ const (
 	AsmStack
 )
 
-type AsmAST interface {
+type AST interface {
 	GetType() AsmAstType
 	Accept(visitor AsmVisitor)
 }
@@ -70,7 +70,7 @@ func (f *FunctionDef) Accept(visitor AsmVisitor) {
 }
 
 type Instruction interface {
-	AsmAST
+	AST
 }
 
 type Mov struct {
@@ -138,7 +138,7 @@ func (r *Return) Accept(visitor AsmVisitor) {
 }
 
 type UnaryOp interface {
-	AsmAST
+	AST
 }
 
 type Neg struct{}
@@ -170,7 +170,7 @@ func (n *Not) Accept(visitor AsmVisitor) {
 }
 
 type Operand interface {
-	AsmAST
+	AST
 }
 
 type Immediate struct {
