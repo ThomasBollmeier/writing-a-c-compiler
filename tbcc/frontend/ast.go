@@ -9,6 +9,7 @@ const (
 	AstInteger
 	AstIdentifier
 	AstUnary
+	AstBinary
 )
 
 type AST interface {
@@ -23,6 +24,7 @@ type AstVisitor interface {
 	VisitInteger(i *IntegerLiteral)
 	VisitIdentifier(id *Identifier)
 	VisitUnary(u *UnaryExpression)
+	VisitBinary(b *BinaryExpression)
 }
 
 type Program struct {
@@ -104,4 +106,18 @@ func (u *UnaryExpression) GetType() AstType {
 
 func (u *UnaryExpression) Accept(visitor AstVisitor) {
 	visitor.VisitUnary(u)
+}
+
+type BinaryExpression struct {
+	Operator string
+	Left     Expression
+	Right    Expression
+}
+
+func (b *BinaryExpression) GetType() AstType {
+	return AstBinary
+}
+
+func (b *BinaryExpression) Accept(visitor AstVisitor) {
+	visitor.VisitBinary(b)
 }

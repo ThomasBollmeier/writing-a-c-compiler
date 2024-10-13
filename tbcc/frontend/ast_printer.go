@@ -60,6 +60,20 @@ func (ap *AstPrinter) VisitUnary(unary *UnaryExpression) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitBinary(binary *BinaryExpression) {
+	ap.println("Binary(")
+	ap.indent()
+	ap.print("operator=\"" + binary.Operator + "\"\n")
+	ap.print("left=")
+	ap.suppressPadding = true
+	binary.Left.Accept(ap)
+	ap.print("right=")
+	ap.suppressPadding = true
+	binary.Right.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) indent() {
 	ap.offset += ap.delta
 }

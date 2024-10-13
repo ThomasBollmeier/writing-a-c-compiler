@@ -100,6 +100,30 @@ func TestTokenize(t *testing.T) {
 			false,
 		},
 		{
+			"unary operator with parenthesis",
+			args{
+				readTestCode("unop_parens.c"),
+			},
+			[]TokenType{
+				TokTypeInt,
+				TokTypeIdentifier,
+				TokTypeLeftParen,
+				TokTypeVoid,
+				TokTypeRightParen,
+				TokTypeLeftBrace,
+				TokTypeReturn,
+				TokTypeTilde,
+				TokTypeLeftParen,
+				TokTypeIntConstant,
+				TokTypePlus,
+				TokTypeIntConstant,
+				TokTypeRightParen,
+				TokTypeSemicolon,
+				TokTypeRightBrace,
+			},
+			false,
+		},
+		{
 			"invalid @ sign",
 			args{
 				readTestCode("at_sign.c"),

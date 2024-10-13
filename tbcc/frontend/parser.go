@@ -86,6 +86,31 @@ func (p *Parser) parseStatement() (Statement, error) {
 }
 
 func (p *Parser) parseExpression() (Expression, error) {
+	ret, err := p.parseFactor()
+	if err != nil {
+		return nil, err
+	}
+	for {
+		token, err := p.peek()
+		if err != nil {
+			return ret, nil
+		}
+		switch token.tokenType {
+		case TokTypePlus, TokTypeMinus:
+			operatorToken, _ := p.consume()
+			operator := operatorToken.lexeme
+			right, err := p.parseFactor()
+			if err != nil {
+				return nil, err
+			}
+			ret = &BinaryExpression{operator, ret, right}
+		default:
+			return ret, nil
+		}
+	}
+}
+
+func (p *Parser) parseFactor() (Expression, error) {
 	token, err := p.peek()
 	if err != nil {
 		return nil, err
@@ -102,7 +127,7 @@ func (p *Parser) parseExpression() (Expression, error) {
 	case TokTypeMinus, TokTypeTilde:
 		_, _ = p.consume()
 		operator := token.lexeme
-		right, err := p.parseExpression()
+		right, err := p.parseFactor()
 		if err != nil {
 			return nil, err
 		}

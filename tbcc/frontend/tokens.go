@@ -15,7 +15,11 @@ const (
 	TokTypeRightBrace
 	TokTypeSemicolon
 	TokTypeTilde
+	TokTypePlus
 	TokTypeMinus
+	TokTypeAsterisk
+	TokTypeSlash
+	TokTypePercent
 	TokTypeMinusMinus
 )
 
@@ -28,7 +32,11 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeRightBrace:  "}",
 	TokTypeSemicolon:   ";",
 	TokTypeTilde:       "~",
+	TokTypePlus:        "\\+",
 	TokTypeMinus:       "-",
+	TokTypeAsterisk:    "\\*",
+	TokTypeSlash:       "/",
+	TokTypePercent:     "%",
 	TokTypeMinusMinus:  "--",
 }
 
