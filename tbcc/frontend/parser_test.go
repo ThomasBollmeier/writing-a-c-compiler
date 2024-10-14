@@ -51,7 +51,7 @@ int main(void) {
 func TestParser_ParseBinary(t *testing.T) {
 	code := `
 int main(void) {
-	return 1 + 2 -3;
+	return 1 + 2 * 3 - 4;
 }`
 	runParserWithCode(t, code, false)
 }

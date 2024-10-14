@@ -74,7 +74,7 @@ func (p *Parser) parseStatement() (Statement, error) {
 	if err != nil {
 		return nil, err
 	}
-	expr, err := p.parseExpression()
+	expr, err := p.parseExpression(0)
 	if err != nil {
 		return nil, err
 	}
@@ -85,27 +85,36 @@ func (p *Parser) parseStatement() (Statement, error) {
 	return &ReturnStmt{expr}, nil
 }
 
-func (p *Parser) parseExpression() (Expression, error) {
+func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 	ret, err := p.parseFactor()
 	if err != nil {
 		return nil, err
 	}
+
 	for {
+
 		token, err := p.peek()
 		if err != nil {
 			return ret, nil
 		}
-		switch token.tokenType {
-		case TokTypePlus, TokTypeMinus:
-			operatorToken, _ := p.consume()
-			operator := operatorToken.lexeme
-			right, err := p.parseFactor()
-			if err != nil {
-				return nil, err
-			}
-			ret = &BinaryExpression{operator, ret, right}
-		default:
+
+		binOpPref, ok := binOpPreference[token.tokenType]
+		if !ok || binOpPref < minPrecedence {
 			return ret, nil
+		}
+
+		binOpToken := token
+		_, _ = p.consume()
+
+		right, err := p.parseExpression(binOpPref + 1)
+		if err != nil {
+			return nil, err
+		}
+
+		ret = &BinaryExpression{
+			binOpToken.lexeme,
+			ret,
+			right,
 		}
 	}
 }
@@ -134,7 +143,7 @@ func (p *Parser) parseFactor() (Expression, error) {
 		return &UnaryExpression{operator, right}, nil
 	case TokTypeLeftParen:
 		_, _ = p.consume()
-		expr, err := p.parseExpression()
+		expr, err := p.parseExpression(0)
 		if err != nil {
 			return nil, err
 		}

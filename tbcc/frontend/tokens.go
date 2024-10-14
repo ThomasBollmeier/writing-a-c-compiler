@@ -46,6 +46,14 @@ var strToKeyword = map[string]TokenType{
 	"return": TokTypeReturn,
 }
 
+var binOpPreference = map[TokenType]int{
+	TokTypeAsterisk: 50,
+	TokTypeSlash:    50,
+	TokTypePercent:  50,
+	TokTypePlus:     45,
+	TokTypeMinus:    45,
+}
+
 type Position struct {
 	Line, Col int
 }

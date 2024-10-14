@@ -48,6 +48,15 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 		unaryOp := t.getUnaryOp(unary.Operator)
 		instructions = append(instructions, &Unary{unaryOp, src, dst})
 		return dst, instructions
+	case frontend.AstBinary:
+		binary := expr.(*frontend.BinaryExpression)
+		src1, instructions := t.translateExpr(binary.Left)
+		src2, instructions2 := t.translateExpr(binary.Right)
+		instructions = append(instructions, instructions2...)
+		dst := &Var{t.createVarName()}
+		binaryOp := t.getBinaryOp(binary.Operator)
+		instructions = append(instructions, &Binary{binaryOp, src1, src2, dst})
+		return dst, instructions
 	default:
 		panic("unsupported expression type")
 	}
@@ -65,6 +74,23 @@ func (t *Translator) getUnaryOp(op string) UnaryOp {
 		return &Negate{}
 	case "~":
 		return &Complement{}
+	default:
+		panic("unsupported operator")
+	}
+}
+
+func (t *Translator) getBinaryOp(op string) BinaryOp {
+	switch op {
+	case "+":
+		return &Add{}
+	case "-":
+		return &Sub{}
+	case "*":
+		return &Mul{}
+	case "/":
+		return &Div{}
+	case "%":
+		return &Remainder{}
 	default:
 		panic("unsupported operator")
 	}

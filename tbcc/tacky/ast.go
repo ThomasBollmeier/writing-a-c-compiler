@@ -9,10 +9,16 @@ const (
 	TacFunction
 	TacReturn
 	TacUnary
+	TacBinary
 	TacIntConstant
 	TacVar
 	TacComplement
 	TacNegate
+	TacAdd
+	TacSub
+	TacMul
+	TacDiv
+	TacRemainder
 )
 
 type TacNode interface {
@@ -58,6 +64,17 @@ func (u *Unary) GetType() TacType {
 	return TacUnary
 }
 
+type Binary struct {
+	Op   BinaryOp
+	Src1 Value
+	Src2 Value
+	Dst  Value
+}
+
+func (b *Binary) GetType() TacType {
+	return TacBinary
+}
+
 type Value interface {
 	TacNode
 }
@@ -92,4 +109,36 @@ type Negate struct{}
 
 func (n *Negate) GetType() TacType {
 	return TacNegate
+}
+
+type BinaryOp interface{}
+
+type Add struct{}
+
+func (a *Add) GetType() TacType {
+	return TacAdd
+}
+
+type Sub struct{}
+
+func (s *Sub) GetType() TacType {
+	return TacSub
+}
+
+type Mul struct{}
+
+func (m *Mul) GetType() TacType {
+	return TacMul
+}
+
+type Div struct{}
+
+func (d *Div) GetType() TacType {
+	return TacDiv
+}
+
+type Remainder struct{}
+
+func (r *Remainder) GetType() TacType {
+	return TacRemainder
 }
