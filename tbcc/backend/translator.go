@@ -57,7 +57,9 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 		src2 := t.translateOperand(binary.Src2)
 		dst := t.translateOperand(binary.Dst)
 		switch binary.Op.GetType() {
-		case tacky.TacAdd, tacky.TacSub, tacky.TacMul:
+		case tacky.TacAdd, tacky.TacSub, tacky.TacMul,
+			tacky.TacBitAnd, tacky.TacBitOr, tacky.TacBitXor,
+			tacky.TacBitShiftLeft, tacky.TacBitShiftRight:
 			op := t.translateBinaryOperator(binary.Op)
 			result = append(result,
 				NewMov(src1, dst),
@@ -120,6 +122,16 @@ func (t *Translator) translateBinaryOperator(op tacky.BinaryOp) BinaryOp {
 		return NewSub()
 	case tacky.TacMul:
 		return NewMul()
+	case tacky.TacBitAnd:
+		return NewBitAnd()
+	case tacky.TacBitOr:
+		return NewBitOr()
+	case tacky.TacBitXor:
+		return NewBitXor()
+	case tacky.TacBitShiftLeft:
+		return NewBitShiftLeft()
+	case tacky.TacBitShiftRight:
+		return NewBitShiftRight()
 	default:
 		panic("unsupported operator type")
 	}
@@ -218,6 +230,10 @@ func (pr *PseudoRegReplacer) VisitMul(m *Mul) {
 	pr.result = m
 }
 
+func (pr *PseudoRegReplacer) VisitBitOp(op BinaryOp) {
+	pr.result = op
+}
+
 func (pr *PseudoRegReplacer) VisitImmediate(i *Immediate) {
 	pr.result = i
 }
@@ -289,12 +305,23 @@ func (ia *InstructionAdapter) VisitUnary(u *Unary) {
 
 func (ia *InstructionAdapter) VisitBinary(b *Binary) {
 	switch b.Op.GetType() {
-	case AsmAdd, AsmSub:
+	case AsmAdd, AsmSub, AsmBitAnd, AsmBitOr, AsmBitXor:
 		if b.Operand1.GetType() == AsmStack && b.Operand2.GetType() == AsmStack {
 			r10 := NewRegister(RegR10)
 			ia.result = []Instruction{
 				NewMov(b.Operand1, r10),
 				NewBinary(b.Op, r10, b.Operand2),
+			}
+		} else {
+			ia.result = []Instruction{b}
+		}
+	case AsmBitShiftLeft, AsmBitShiftRight:
+		if b.Operand1.GetType() == AsmStack {
+			cx := NewRegister(RegCX)
+			ia.result = []Instruction{
+				NewMov(b.Operand1, cx),
+				NewBinary(b.Op, cx, b.Operand2),
+				NewMov(cx, b.Operand1),
 			}
 		} else {
 			ia.result = []Instruction{b}
@@ -357,6 +384,10 @@ func (ia *InstructionAdapter) VisitSub(s *Sub) {
 
 func (ia *InstructionAdapter) VisitMul(m *Mul) {
 	ia.result = m
+}
+
+func (ia *InstructionAdapter) VisitBitOp(op BinaryOp) {
+	ia.result = op
 }
 
 func (ia *InstructionAdapter) VisitImmediate(i *Immediate) {

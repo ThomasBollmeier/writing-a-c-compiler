@@ -99,6 +99,23 @@ func (cg *CodeGenerator) VisitMul(*Mul) {
 	cg.write("imull")
 }
 
+func (cg *CodeGenerator) VisitBitOp(op BinaryOp) {
+	switch op.GetType() {
+	case AsmBitAnd:
+		cg.write("and")
+	case AsmBitOr:
+		cg.write("or")
+	case AsmBitXor:
+		cg.write("xor")
+	case AsmBitShiftLeft:
+		cg.write("shl")
+	case AsmBitShiftRight:
+		cg.write("shr")
+	default:
+		panic(fmt.Sprintf("unknown op type: %v", op.GetType()))
+	}
+}
+
 func (cg *CodeGenerator) VisitImmediate(i *Immediate) {
 	cg.write(fmt.Sprintf("$%d", i.Value))
 }
@@ -107,6 +124,8 @@ func (cg *CodeGenerator) VisitRegister(r *Register) {
 	switch r.Name {
 	case RegAX:
 		cg.write("%eax")
+	case RegCX:
+		cg.write("%ecx")
 	case RegDX:
 		cg.write("%edx")
 	case RegR10:

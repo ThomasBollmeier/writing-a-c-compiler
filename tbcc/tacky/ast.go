@@ -19,6 +19,11 @@ const (
 	TacMul
 	TacDiv
 	TacRemainder
+	TacBitAnd
+	TacBitOr
+	TacBitXor
+	TacBitShiftLeft
+	TacBitShiftRight
 )
 
 type TacNode interface {
@@ -143,4 +148,34 @@ type Remainder struct{}
 
 func (r *Remainder) GetType() TacType {
 	return TacRemainder
+}
+
+type BitAnd struct{}
+
+func (b *BitAnd) GetType() TacType {
+	return TacBitAnd
+}
+
+type BitOr struct{}
+
+func (b *BitOr) GetType() TacType {
+	return TacBitOr
+}
+
+type BitXor struct{}
+
+func (b *BitXor) GetType() TacType {
+	return TacBitXor
+}
+
+type BitShiftLeft struct{}
+
+func (b *BitShiftLeft) GetType() TacType {
+	return TacBitShiftLeft
+}
+
+type BitShiftRight struct{}
+
+func (b *BitShiftRight) GetType() TacType {
+	return TacBitShiftRight
 }

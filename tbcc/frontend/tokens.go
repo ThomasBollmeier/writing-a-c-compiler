@@ -21,23 +21,33 @@ const (
 	TokTypeSlash
 	TokTypePercent
 	TokTypeMinusMinus
+	TokTypeAmpersand
+	TokTypePipe
+	TokTypeCaret
+	TokTypeLessLess
+	TokTypeGreaterGreater
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
-	TokTypeIdentifier:  "[a-zA-Z_]\\w*\\b",
-	TokTypeIntConstant: "[0-9]+\\b",
-	TokTypeLeftParen:   "\\(",
-	TokTypeRightParen:  "\\)",
-	TokTypeLeftBrace:   "{",
-	TokTypeRightBrace:  "}",
-	TokTypeSemicolon:   ";",
-	TokTypeTilde:       "~",
-	TokTypePlus:        "\\+",
-	TokTypeMinus:       "-",
-	TokTypeAsterisk:    "\\*",
-	TokTypeSlash:       "/",
-	TokTypePercent:     "%",
-	TokTypeMinusMinus:  "--",
+	TokTypeIdentifier:     "[a-zA-Z_]\\w*\\b",
+	TokTypeIntConstant:    "[0-9]+\\b",
+	TokTypeLeftParen:      "\\(",
+	TokTypeRightParen:     "\\)",
+	TokTypeLeftBrace:      "{",
+	TokTypeRightBrace:     "}",
+	TokTypeSemicolon:      ";",
+	TokTypeTilde:          "~",
+	TokTypePlus:           "\\+",
+	TokTypeMinus:          "-",
+	TokTypeAsterisk:       "\\*",
+	TokTypeSlash:          "/",
+	TokTypePercent:        "%",
+	TokTypeMinusMinus:     "--",
+	TokTypeAmpersand:      "&",
+	TokTypePipe:           "\\|",
+	TokTypeCaret:          "\\^",
+	TokTypeLessLess:       "<<",
+	TokTypeGreaterGreater: ">>",
 }
 
 var strToKeyword = map[string]TokenType{
@@ -47,11 +57,16 @@ var strToKeyword = map[string]TokenType{
 }
 
 var binOpPreference = map[TokenType]int{
-	TokTypeAsterisk: 50,
-	TokTypeSlash:    50,
-	TokTypePercent:  50,
-	TokTypePlus:     45,
-	TokTypeMinus:    45,
+	TokTypeAsterisk:       50,
+	TokTypeSlash:          50,
+	TokTypePercent:        50,
+	TokTypePlus:           45,
+	TokTypeMinus:          45,
+	TokTypeLessLess:       40,
+	TokTypeGreaterGreater: 40,
+	TokTypeAmpersand:      30,
+	TokTypeCaret:          25,
+	TokTypePipe:           20,
 }
 
 type Position struct {

@@ -124,6 +124,27 @@ func TestTokenize(t *testing.T) {
 			false,
 		},
 		{
+			"shift_left",
+			args{
+				readTestCode("shift_left.c"),
+			},
+			[]TokenType{
+				TokTypeInt,
+				TokTypeIdentifier,
+				TokTypeLeftParen,
+				TokTypeVoid,
+				TokTypeRightParen,
+				TokTypeLeftBrace,
+				TokTypeReturn,
+				TokTypeIntConstant,
+				TokTypeLessLess,
+				TokTypeIntConstant,
+				TokTypeSemicolon,
+				TokTypeRightBrace,
+			},
+			false,
+		},
+		{
 			"invalid @ sign",
 			args{
 				readTestCode("at_sign.c"),

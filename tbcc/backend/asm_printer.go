@@ -122,6 +122,23 @@ func (ap *AsmPrinter) VisitMul(*Mul) {
 	ap.println("Mul")
 }
 
+func (ap *AsmPrinter) VisitBitOp(op BinaryOp) {
+	switch op.GetType() {
+	case AsmBitAnd:
+		ap.println("BitAnd")
+	case AsmBitOr:
+		ap.println("BitOr")
+	case AsmBitXor:
+		ap.println("BitXor")
+	case AsmBitShiftLeft:
+		ap.println("BitShiftLeft")
+	case AsmBitShiftRight:
+		ap.println("BitShiftRight")
+	default:
+		panic("unknown bit operator")
+	}
+}
+
 func (ap *AsmPrinter) VisitImmediate(i *Immediate) {
 	text := fmt.Sprintf("Immediate(%d)", i.Value)
 	ap.println(text)

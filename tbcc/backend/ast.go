@@ -17,6 +17,11 @@ const (
 	AsmAdd
 	AsmSub
 	AsmMul
+	AsmBitAnd
+	AsmBitOr
+	AsmBitXor
+	AsmBitShiftLeft
+	AsmBitShiftRight
 	AsmImmediate
 	AsmRegister
 	AsmPseudoReg
@@ -25,6 +30,7 @@ const (
 
 const (
 	RegAX  string = "AX"
+	RegCX  string = "CX"
 	RegDX         = "DX"
 	RegR10        = "R10"
 	RegR11        = "R11"
@@ -50,6 +56,7 @@ type AsmVisitor interface {
 	VisitAdd(a *Add)
 	VisitSub(s *Sub)
 	VisitMul(m *Mul)
+	VisitBitOp(bo BinaryOp)
 	VisitImmediate(i *Immediate)
 	VisitRegister(r *Register)
 	VisitPseudoReg(p *PseudoReg)
@@ -280,6 +287,76 @@ func (m *Mul) GetType() AsmAstType {
 
 func (m *Mul) Accept(visitor AsmVisitor) {
 	visitor.VisitMul(m)
+}
+
+type BitAnd struct{}
+
+func NewBitAnd() *BitAnd {
+	return &BitAnd{}
+}
+
+func (b *BitAnd) GetType() AsmAstType {
+	return AsmBitAnd
+}
+
+func (b *BitAnd) Accept(visitor AsmVisitor) {
+	visitor.VisitBitOp(b)
+}
+
+type BitOr struct{}
+
+func NewBitOr() *BitOr {
+	return &BitOr{}
+}
+
+func (b *BitOr) GetType() AsmAstType {
+	return AsmBitOr
+}
+
+func (b *BitOr) Accept(visitor AsmVisitor) {
+	visitor.VisitBitOp(b)
+}
+
+type BitXor struct{}
+
+func NewBitXor() *BitXor {
+	return &BitXor{}
+}
+
+func (b *BitXor) GetType() AsmAstType {
+	return AsmBitXor
+}
+
+func (b *BitXor) Accept(visitor AsmVisitor) {
+	visitor.VisitBitOp(b)
+}
+
+type BitShiftLeft struct{}
+
+func NewBitShiftLeft() *BitShiftLeft {
+	return &BitShiftLeft{}
+}
+
+func (b *BitShiftLeft) GetType() AsmAstType {
+	return AsmBitShiftLeft
+}
+
+func (b *BitShiftLeft) Accept(visitor AsmVisitor) {
+	visitor.VisitBitOp(b)
+}
+
+type BitShiftRight struct{}
+
+func NewBitShiftRight() *BitShiftRight {
+	return &BitShiftRight{}
+}
+
+func (b *BitShiftRight) GetType() AsmAstType {
+	return AsmBitShiftRight
+}
+
+func (b *BitShiftRight) Accept(visitor AsmVisitor) {
+	visitor.VisitBitOp(b)
 }
 
 type Operand interface {

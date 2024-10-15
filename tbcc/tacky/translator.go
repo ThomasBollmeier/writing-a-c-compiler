@@ -91,6 +91,16 @@ func (t *Translator) getBinaryOp(op string) BinaryOp {
 		return &Div{}
 	case "%":
 		return &Remainder{}
+	case "&":
+		return &BitAnd{}
+	case "|":
+		return &BitOr{}
+	case "^":
+		return &BitXor{}
+	case "<<":
+		return &BitShiftLeft{}
+	case ">>":
+		return &BitShiftRight{}
 	default:
 		panic("unsupported operator")
 	}

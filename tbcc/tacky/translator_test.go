@@ -18,6 +18,18 @@ int main(void) {
 	fmt.Println(program)
 }
 
+func TestTranslator_Translate_ShiftLeft(t *testing.T) {
+	code := `
+int main(void) {
+	return 21 << 1;
+}`
+	ast := parse(code)
+	translator := NewTranslator()
+	program := translator.Translate(ast)
+
+	fmt.Println(program)
+}
+
 func parse(code string) *frontend.Program {
 	tokens, _ := frontend.Tokenize(code)
 	parser := frontend.NewParser(tokens)

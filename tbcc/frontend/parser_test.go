@@ -56,6 +56,36 @@ int main(void) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseShiftLeft(t *testing.T) {
+	code := `
+int main(void) {
+	return 21 << 1;
+}`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseBitwiseOr(t *testing.T) {
+	code := `
+int main(void) {
+	return 1 | 2;
+}`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseBitwisePreference(t *testing.T) {
+	code := `int main(void) {
+		return 80 >> 2 | 1 ^ 5 & 7 << 1;
+	}`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseBitwiseShiftPreference(t *testing.T) {
+	code := `int main(void) {
+		return 40 << 4 + 12 >> 1;
+	}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {
