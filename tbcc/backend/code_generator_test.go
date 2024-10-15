@@ -18,6 +18,17 @@ int main(void) {
 	fmt.Print(asm)
 }
 
+func TestCodeGenerator_GenerateCode_Associativity(t *testing.T) {
+	code := `
+int main(void) {
+    return (3 / 2 * 4) + (5 - 4 + 3);
+}`
+	asmProgram := codeToAsm(code)
+	asm := NewCodeGenerator().GenerateCode(*asmProgram)
+
+	fmt.Print(asm)
+}
+
 func codeToAsm(code string) *Program {
 	tokens, _ := frontend.Tokenize(code)
 	ast, _ := frontend.NewParser(tokens).ParseProgram()

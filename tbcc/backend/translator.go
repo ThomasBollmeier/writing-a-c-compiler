@@ -1,6 +1,8 @@
 package backend
 
-import "github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
+import (
+	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
+)
 
 type Translator struct{}
 
@@ -37,7 +39,7 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 		ret := instruction.(*tacky.Return)
 		operand := t.translateOperand(ret.Val)
 		result = append(result,
-			NewMov(operand, NewRegister("AX")),
+			NewMov(operand, NewRegister(RegAX)),
 			NewReturn())
 		return result
 	case tacky.TacUnary:
@@ -49,9 +51,41 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 			NewMov(src, dst),
 			NewUnary(op, dst))
 		return result
+	case tacky.TacBinary:
+		binary := instruction.(*tacky.Binary)
+		src1 := t.translateOperand(binary.Src1)
+		src2 := t.translateOperand(binary.Src2)
+		dst := t.translateOperand(binary.Dst)
+		switch binary.Op.GetType() {
+		case tacky.TacAdd, tacky.TacSub, tacky.TacMul:
+			op := t.translateBinaryOperator(binary.Op)
+			result = append(result,
+				NewMov(src1, dst),
+				NewBinary(op, src2, dst))
+			return result
+		case tacky.TacDiv:
+			return t.createIDivInstructions(true, src1, src2, dst)
+		case tacky.TacRemainder:
+			return t.createIDivInstructions(false, src1, src2, dst)
+		default:
+			panic("unsupported binary operator")
+		}
 	default:
-		panic("Unsupported instruction type")
+		panic("unsupported instruction type")
 	}
+}
+
+func (t *Translator) createIDivInstructions(calcQuotient bool, src1, src2, dst Operand) []Instruction {
+	var result []Instruction
+	result = append(result, NewMov(src1, NewRegister(RegAX)))
+	result = append(result, NewCdq())
+	result = append(result, NewIDiv(src2))
+	if calcQuotient {
+		result = append(result, NewMov(NewRegister(RegAX), dst))
+	} else {
+		result = append(result, NewMov(NewRegister(RegDX), dst))
+	}
+	return result
 }
 
 func (t *Translator) translateOperand(value tacky.Value) Operand {
@@ -63,7 +97,7 @@ func (t *Translator) translateOperand(value tacky.Value) Operand {
 		variable := value.(*tacky.Var)
 		return NewPseudoReg(variable.Ident)
 	default:
-		panic("Unsupported value type")
+		panic("unsupported value type")
 	}
 }
 
@@ -74,7 +108,20 @@ func (t *Translator) translateUnaryOperator(op tacky.UnaryOp) UnaryOp {
 	case tacky.TacNegate:
 		return NewNeg()
 	default:
-		panic("Unsupported operator type")
+		panic("unsupported operator type")
+	}
+}
+
+func (t *Translator) translateBinaryOperator(op tacky.BinaryOp) BinaryOp {
+	switch op.GetType() {
+	case tacky.TacAdd:
+		return NewAdd()
+	case tacky.TacSub:
+		return NewSub()
+	case tacky.TacMul:
+		return NewMul()
+	default:
+		panic("unsupported operator type")
 	}
 }
 
@@ -128,6 +175,21 @@ func (pr *PseudoRegReplacer) VisitUnary(u *Unary) {
 	pr.result = &Unary{u.Op, operand}
 }
 
+func (pr *PseudoRegReplacer) VisitBinary(b *Binary) {
+	operand1 := pr.eval(b.Operand1).(Operand)
+	operand2 := pr.eval(b.Operand2).(Operand)
+	pr.result = &Binary{b.Op, operand1, operand2}
+}
+
+func (pr *PseudoRegReplacer) VisitIDiv(i *IDiv) {
+	operand := pr.eval(i.Operand).(Operand)
+	pr.result = &IDiv{operand}
+}
+
+func (pr *PseudoRegReplacer) VisitCdq(c *Cdq) {
+	pr.result = c
+}
+
 func (pr *PseudoRegReplacer) VisitAllocStack(a *AllocStack) {
 	pr.result = a
 }
@@ -142,6 +204,18 @@ func (pr *PseudoRegReplacer) VisitNeg(n *Neg) {
 
 func (pr *PseudoRegReplacer) VisitNot(n *Not) {
 	pr.result = n
+}
+
+func (pr *PseudoRegReplacer) VisitAdd(a *Add) {
+	pr.result = a
+}
+
+func (pr *PseudoRegReplacer) VisitSub(s *Sub) {
+	pr.result = s
+}
+
+func (pr *PseudoRegReplacer) VisitMul(m *Mul) {
+	pr.result = m
 }
 
 func (pr *PseudoRegReplacer) VisitImmediate(i *Immediate) {
@@ -199,7 +273,7 @@ func (ia *InstructionAdapter) VisitFunctionDef(f *FunctionDef) {
 
 func (ia *InstructionAdapter) VisitMov(m *Mov) {
 	if m.Src.GetType() == AsmStack && m.Dst.GetType() == AsmStack {
-		r10 := NewRegister("R10")
+		r10 := NewRegister(RegR10)
 		ia.result = []Instruction{
 			&Mov{m.Src, r10},
 			&Mov{r10, m.Dst},
@@ -211,6 +285,50 @@ func (ia *InstructionAdapter) VisitMov(m *Mov) {
 
 func (ia *InstructionAdapter) VisitUnary(u *Unary) {
 	ia.result = []Instruction{u}
+}
+
+func (ia *InstructionAdapter) VisitBinary(b *Binary) {
+	switch b.Op.GetType() {
+	case AsmAdd, AsmSub:
+		if b.Operand1.GetType() == AsmStack && b.Operand2.GetType() == AsmStack {
+			r10 := NewRegister(RegR10)
+			ia.result = []Instruction{
+				NewMov(b.Operand1, r10),
+				NewBinary(b.Op, r10, b.Operand2),
+			}
+		} else {
+			ia.result = []Instruction{b}
+		}
+	case AsmMul:
+		if b.Operand2.GetType() == AsmStack {
+			r11 := NewRegister(RegR11)
+			ia.result = []Instruction{
+				NewMov(b.Operand2, r11),
+				NewBinary(b.Op, b.Operand1, r11),
+				NewMov(r11, b.Operand2),
+			}
+		} else {
+			ia.result = []Instruction{b}
+		}
+	default:
+		panic("unsupported binary operator")
+	}
+}
+
+func (ia *InstructionAdapter) VisitIDiv(i *IDiv) {
+	if i.Operand.GetType() == AsmImmediate {
+		r10 := NewRegister(RegR10)
+		ia.result = []Instruction{
+			NewMov(i.Operand, r10),
+			NewIDiv(r10),
+		}
+	} else {
+		ia.result = []Instruction{i}
+	}
+}
+
+func (ia *InstructionAdapter) VisitCdq(c *Cdq) {
+	ia.result = []Instruction{c}
 }
 
 func (ia *InstructionAdapter) VisitAllocStack(a *AllocStack) {
@@ -227,6 +345,18 @@ func (ia *InstructionAdapter) VisitNeg(n *Neg) {
 
 func (ia *InstructionAdapter) VisitNot(n *Not) {
 	ia.result = n
+}
+
+func (ia *InstructionAdapter) VisitAdd(a *Add) {
+	ia.result = a
+}
+
+func (ia *InstructionAdapter) VisitSub(s *Sub) {
+	ia.result = s
+}
+
+func (ia *InstructionAdapter) VisitMul(m *Mul) {
+	ia.result = m
 }
 
 func (ia *InstructionAdapter) VisitImmediate(i *Immediate) {

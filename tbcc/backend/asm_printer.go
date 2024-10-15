@@ -63,6 +63,36 @@ func (ap *AsmPrinter) VisitUnary(u *Unary) {
 	ap.println(")")
 }
 
+func (ap *AsmPrinter) VisitBinary(b *Binary) {
+	ap.println("Binary(")
+	ap.indent()
+	ap.print("op=")
+	ap.suppressPadding = true
+	b.Op.Accept(ap)
+	ap.print("operand1=")
+	ap.suppressPadding = true
+	b.Operand1.Accept(ap)
+	ap.print("operand2=")
+	ap.suppressPadding = true
+	b.Operand2.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitIDiv(i *IDiv) {
+	ap.println("IDiv(")
+	ap.indent()
+	ap.print("operand=")
+	ap.suppressPadding = true
+	i.Operand.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitCdq(*Cdq) {
+	ap.println("Cdq")
+}
+
 func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
 	text := fmt.Sprintf("AllocStack(%d)", a.N)
 	ap.println(text)
@@ -78,6 +108,18 @@ func (ap *AsmPrinter) VisitNeg(*Neg) {
 
 func (ap *AsmPrinter) VisitNot(*Not) {
 	ap.println("Not")
+}
+
+func (ap *AsmPrinter) VisitAdd(*Add) {
+	ap.println("Add")
+}
+
+func (ap *AsmPrinter) VisitSub(*Sub) {
+	ap.println("Sub")
+}
+
+func (ap *AsmPrinter) VisitMul(*Mul) {
+	ap.println("Mul")
 }
 
 func (ap *AsmPrinter) VisitImmediate(i *Immediate) {

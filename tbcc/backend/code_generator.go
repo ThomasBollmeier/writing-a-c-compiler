@@ -49,6 +49,26 @@ func (cg *CodeGenerator) VisitUnary(u *Unary) {
 	cg.writeln("")
 }
 
+func (cg *CodeGenerator) VisitBinary(b *Binary) {
+	cg.write("\t")
+	b.Op.Accept(cg)
+	cg.write(" ")
+	b.Operand1.Accept(cg)
+	cg.write(", ")
+	b.Operand2.Accept(cg)
+	cg.writeln("")
+}
+
+func (cg *CodeGenerator) VisitIDiv(i *IDiv) {
+	cg.write("\tidivl ")
+	i.Operand.Accept(cg)
+	cg.writeln("")
+}
+
+func (cg *CodeGenerator) VisitCdq(*Cdq) {
+	cg.writeln("\tcdq")
+}
+
 func (cg *CodeGenerator) VisitAllocStack(a *AllocStack) {
 	cg.writeln(fmt.Sprintf("\tsubq $%d, %%rsp", a.N))
 }
@@ -67,16 +87,32 @@ func (cg *CodeGenerator) VisitNot(*Not) {
 	cg.write("notl")
 }
 
+func (cg *CodeGenerator) VisitAdd(*Add) {
+	cg.write("addl")
+}
+
+func (cg *CodeGenerator) VisitSub(*Sub) {
+	cg.write("subl")
+}
+
+func (cg *CodeGenerator) VisitMul(*Mul) {
+	cg.write("imull")
+}
+
 func (cg *CodeGenerator) VisitImmediate(i *Immediate) {
 	cg.write(fmt.Sprintf("$%d", i.Value))
 }
 
 func (cg *CodeGenerator) VisitRegister(r *Register) {
 	switch r.Name {
-	case "AX":
+	case RegAX:
 		cg.write("%eax")
-	case "R10":
+	case RegDX:
+		cg.write("%edx")
+	case RegR10:
 		cg.write("%r10d")
+	case RegR11:
+		cg.write("%r11d")
 	default:
 		panic("unknown register name")
 	}

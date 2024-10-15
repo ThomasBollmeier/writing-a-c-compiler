@@ -7,14 +7,27 @@ const (
 	AsmFunctionDef
 	AsmMov
 	AsmUnary
+	AsmBinary
+	AsmIDiv
+	AsmCdq
 	AsmAllocStack
 	AsmReturn
 	AsmNeg
 	AsmNot
+	AsmAdd
+	AsmSub
+	AsmMul
 	AsmImmediate
 	AsmRegister
 	AsmPseudoReg
 	AsmStack
+)
+
+const (
+	RegAX  string = "AX"
+	RegDX         = "DX"
+	RegR10        = "R10"
+	RegR11        = "R11"
 )
 
 type AST interface {
@@ -27,10 +40,16 @@ type AsmVisitor interface {
 	VisitFunctionDef(f *FunctionDef)
 	VisitMov(m *Mov)
 	VisitUnary(u *Unary)
+	VisitBinary(b *Binary)
+	VisitIDiv(i *IDiv)
+	VisitCdq(c *Cdq)
 	VisitAllocStack(a *AllocStack)
 	VisitReturn()
 	VisitNeg(n *Neg)
 	VisitNot(n *Not)
+	VisitAdd(a *Add)
+	VisitSub(s *Sub)
+	VisitMul(m *Mul)
 	VisitImmediate(i *Immediate)
 	VisitRegister(r *Register)
 	VisitPseudoReg(p *PseudoReg)
@@ -107,6 +126,54 @@ func (u *Unary) Accept(visitor AsmVisitor) {
 	visitor.VisitUnary(u)
 }
 
+type Binary struct {
+	Op       BinaryOp
+	Operand1 Operand
+	Operand2 Operand
+}
+
+func NewBinary(op BinaryOp, operand1 Operand, operand2 Operand) *Binary {
+	return &Binary{op, operand1, operand2}
+}
+
+func (b *Binary) GetType() AsmAstType {
+	return AsmBinary
+}
+
+func (b *Binary) Accept(visitor AsmVisitor) {
+	visitor.VisitBinary(b)
+}
+
+type IDiv struct {
+	Operand Operand
+}
+
+func NewIDiv(operand Operand) *IDiv {
+	return &IDiv{operand}
+}
+
+func (i *IDiv) GetType() AsmAstType {
+	return AsmIDiv
+}
+
+func (i *IDiv) Accept(visitor AsmVisitor) {
+	visitor.VisitIDiv(i)
+}
+
+type Cdq struct{}
+
+func NewCdq() *Cdq {
+	return &Cdq{}
+}
+
+func (c *Cdq) GetType() AsmAstType {
+	return AsmCdq
+}
+
+func (c *Cdq) Accept(visitor AsmVisitor) {
+	visitor.VisitCdq(c)
+}
+
 type AllocStack struct {
 	N int
 }
@@ -167,6 +234,52 @@ func (n *Not) GetType() AsmAstType {
 
 func (n *Not) Accept(visitor AsmVisitor) {
 	visitor.VisitNot(n)
+}
+
+type BinaryOp interface {
+	AST
+}
+
+type Add struct{}
+
+func NewAdd() *Add {
+	return &Add{}
+}
+
+func (a *Add) GetType() AsmAstType {
+	return AsmAdd
+}
+
+func (a *Add) Accept(visitor AsmVisitor) {
+	visitor.VisitAdd(a)
+}
+
+type Sub struct{}
+
+func NewSub() *Sub {
+	return &Sub{}
+}
+
+func (s *Sub) GetType() AsmAstType {
+	return AsmSub
+}
+
+func (s *Sub) Accept(visitor AsmVisitor) {
+	visitor.VisitSub(s)
+}
+
+type Mul struct{}
+
+func NewMul() *Mul {
+	return &Mul{}
+}
+
+func (m *Mul) GetType() AsmAstType {
+	return AsmMul
+}
+
+func (m *Mul) Accept(visitor AsmVisitor) {
+	visitor.VisitMul(m)
 }
 
 type Operand interface {

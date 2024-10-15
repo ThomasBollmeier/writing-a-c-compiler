@@ -111,7 +111,9 @@ func (n *Negate) GetType() TacType {
 	return TacNegate
 }
 
-type BinaryOp interface{}
+type BinaryOp interface {
+	TacNode
+}
 
 type Add struct{}
 
