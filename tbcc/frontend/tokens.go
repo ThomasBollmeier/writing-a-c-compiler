@@ -26,6 +26,15 @@ const (
 	TokTypeCaret
 	TokTypeLessLess
 	TokTypeGreaterGreater
+	TokTypeExclMark
+	TokTypeAmperAmper
+	TokTypePipePipe
+	TokTypeEqEq
+	TokTypeExclMarkEq
+	TokTypeGt
+	TokTypeGtEq
+	TokTypeLt
+	TokTypeLtEq
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -48,6 +57,15 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeCaret:          "\\^",
 	TokTypeLessLess:       "<<",
 	TokTypeGreaterGreater: ">>",
+	TokTypeExclMark:       "!",
+	TokTypeAmperAmper:     "&&",
+	TokTypePipePipe:       "\\|\\|",
+	TokTypeEqEq:           "==",
+	TokTypeExclMarkEq:     "!=",
+	TokTypeGt:             ">",
+	TokTypeGtEq:           ">=",
+	TokTypeLt:             "<",
+	TokTypeLtEq:           "<=",
 }
 
 var strToKeyword = map[string]TokenType{
@@ -64,9 +82,17 @@ var binOpPreference = map[TokenType]int{
 	TokTypeMinus:          45,
 	TokTypeLessLess:       40,
 	TokTypeGreaterGreater: 40,
-	TokTypeAmpersand:      30,
+	TokTypeLt:             35,
+	TokTypeLtEq:           35,
+	TokTypeGt:             35,
+	TokTypeGtEq:           35,
+	TokTypeEqEq:           30,
+	TokTypeExclMarkEq:     30,
+	TokTypeAmpersand:      26,
 	TokTypeCaret:          25,
 	TokTypePipe:           20,
+	TokTypeAmperAmper:     10,
+	TokTypePipePipe:       5,
 }
 
 type Position struct {

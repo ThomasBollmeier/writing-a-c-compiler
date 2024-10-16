@@ -133,7 +133,7 @@ func (p *Parser) parseFactor() (Expression, error) {
 			return nil, err
 		}
 		return &IntegerLiteral{int(value)}, nil
-	case TokTypeMinus, TokTypeTilde:
+	case TokTypeMinus, TokTypeTilde, TokTypeExclMark:
 		_, _ = p.consume()
 		operator := token.lexeme
 		right, err := p.parseFactor()
