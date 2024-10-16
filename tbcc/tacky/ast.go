@@ -10,6 +10,11 @@ const (
 	TacReturn
 	TacUnary
 	TacBinary
+	TacCopy
+	TacJump
+	TacJumpIfZero
+	TacJumpIfNotZero
+	TacLabel
 	TacIntConstant
 	TacVar
 	TacComplement
@@ -24,6 +29,15 @@ const (
 	TacBitXor
 	TacBitShiftLeft
 	TacBitShiftRight
+	TacNot
+	TacAnd
+	TacOr
+	TacEq
+	TacNotEq
+	TacGt
+	TacGtEq
+	TacLt
+	TacLtEq
 )
 
 type TacNode interface {
@@ -80,6 +94,49 @@ func (b *Binary) GetType() TacType {
 	return TacBinary
 }
 
+type Copy struct {
+	Src Value
+	Dst Value
+}
+
+func (c *Copy) GetType() TacType {
+	return TacCopy
+}
+
+type Jump struct {
+	Target string
+}
+
+func (j *Jump) GetType() TacType {
+	return TacJump
+}
+
+type JumpIfZero struct {
+	Condition Value
+	Target    string
+}
+
+func (j *JumpIfZero) GetType() TacType {
+	return TacJumpIfZero
+}
+
+type JumpIfNotZero struct {
+	Condition Value
+	Target    string
+}
+
+func (j *JumpIfNotZero) GetType() TacType {
+	return TacJumpIfNotZero
+}
+
+type Label struct {
+	Name string
+}
+
+func (l *Label) GetType() TacType {
+	return TacLabel
+}
+
 type Value interface {
 	TacNode
 }
@@ -114,6 +171,12 @@ type Negate struct{}
 
 func (n *Negate) GetType() TacType {
 	return TacNegate
+}
+
+type Not struct{}
+
+func (n *Not) GetType() TacType {
+	return TacNot
 }
 
 type BinaryOp interface {
@@ -178,4 +241,52 @@ type BitShiftRight struct{}
 
 func (b *BitShiftRight) GetType() TacType {
 	return TacBitShiftRight
+}
+
+type And struct{}
+
+func (a *And) GetType() TacType {
+	return TacAnd
+}
+
+type Or struct{}
+
+func (p *Or) GetType() TacType {
+	return TacOr
+}
+
+type Equal struct{}
+
+func (e *Equal) GetType() TacType {
+	return TacEq
+}
+
+type NotEqual struct{}
+
+func (n *NotEqual) GetType() TacType {
+	return TacNotEq
+}
+
+type Greater struct{}
+
+func (g *Greater) GetType() TacType {
+	return TacGt
+}
+
+type GreaterEq struct{}
+
+func (g *GreaterEq) GetType() TacType {
+	return TacGtEq
+}
+
+type Less struct{}
+
+func (l *Less) GetType() TacType {
+	return TacLt
+}
+
+type LessEq struct{}
+
+func (l *LessEq) GetType() TacType {
+	return TacLtEq
 }
