@@ -139,6 +139,7 @@ func (t *Translator) createLabelName(prefix string) string {
 	}
 	ret := fmt.Sprintf("%s%d", prefix, current)
 	current++
+	t.labelCounters[prefix] = current
 	return ret
 }
 

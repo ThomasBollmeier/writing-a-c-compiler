@@ -8,8 +8,13 @@ const (
 	AsmMov
 	AsmUnary
 	AsmBinary
+	AsmCmp
 	AsmIDiv
 	AsmCdq
+	AsmJmp
+	AsmJmpCC
+	AsmSetCC
+	AsmLabel
 	AsmAllocStack
 	AsmReturn
 	AsmNeg
@@ -26,6 +31,17 @@ const (
 	AsmRegister
 	AsmPseudoReg
 	AsmStack
+)
+
+type ConditionCode uint
+
+const (
+	CcEq ConditionCode = iota
+	CcNotEq
+	CcGt
+	CcGtEq
+	CcLt
+	CcLtEq
 )
 
 const (
@@ -47,8 +63,13 @@ type AsmVisitor interface {
 	VisitMov(m *Mov)
 	VisitUnary(u *Unary)
 	VisitBinary(b *Binary)
+	VisitCmp(c *Cmp)
 	VisitIDiv(i *IDiv)
 	VisitCdq(c *Cdq)
+	VisitJump(j *Jump)
+	VisitJumpCC(j *JumpCC)
+	VisitSetCC(s *SetCC)
+	VisitLabel(l *Label)
 	VisitAllocStack(a *AllocStack)
 	VisitReturn()
 	VisitNeg(n *Neg)
@@ -151,6 +172,23 @@ func (b *Binary) Accept(visitor AsmVisitor) {
 	visitor.VisitBinary(b)
 }
 
+type Cmp struct {
+	Left  Operand
+	Right Operand
+}
+
+func NewCmp(left Operand, right Operand) *Cmp {
+	return &Cmp{left, right}
+}
+
+func (c *Cmp) GetType() AsmAstType {
+	return AsmCmp
+}
+
+func (c *Cmp) Accept(visitor AsmVisitor) {
+	visitor.VisitCmp(c)
+}
+
 type IDiv struct {
 	Operand Operand
 }
@@ -179,6 +217,72 @@ func (c *Cdq) GetType() AsmAstType {
 
 func (c *Cdq) Accept(visitor AsmVisitor) {
 	visitor.VisitCdq(c)
+}
+
+type Jump struct {
+	Identifier string
+}
+
+func NewJump(identifier string) *Jump {
+	return &Jump{identifier}
+}
+
+func (j *Jump) GetType() AsmAstType {
+	return AsmJmp
+}
+
+func (j *Jump) Accept(visitor AsmVisitor) {
+	visitor.VisitJump(j)
+}
+
+type JumpCC struct {
+	CondCode   ConditionCode
+	Identifier string
+}
+
+func NewJumpCC(condCode ConditionCode, identifier string) *JumpCC {
+	return &JumpCC{condCode, identifier}
+}
+
+func (j *JumpCC) GetType() AsmAstType {
+	return AsmJmpCC
+}
+
+func (j *JumpCC) Accept(visitor AsmVisitor) {
+	visitor.VisitJumpCC(j)
+}
+
+type SetCC struct {
+	CondCode ConditionCode
+	Op       Operand
+}
+
+func NewSetCC(condCode ConditionCode, op Operand) *SetCC {
+	return &SetCC{condCode, op}
+}
+
+func (s *SetCC) GetType() AsmAstType {
+	return AsmSetCC
+}
+
+func (s *SetCC) Accept(visitor AsmVisitor) {
+	visitor.VisitSetCC(s)
+}
+
+type Label struct {
+	Identifier string
+}
+
+func NewLabel(identifier string) *Label {
+	return &Label{identifier}
+}
+
+func (l *Label) GetType() AsmAstType {
+	return AsmLabel
+}
+
+func (l *Label) Accept(visitor AsmVisitor) {
+	visitor.VisitLabel(l)
 }
 
 type AllocStack struct {

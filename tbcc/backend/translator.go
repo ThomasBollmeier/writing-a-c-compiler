@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"fmt"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
 )
 
@@ -34,7 +35,10 @@ func (t *Translator) translateAllInstructions(instructions []tacky.Instruction) 
 
 func (t *Translator) translateInstructions(instruction tacky.Instruction) []Instruction {
 	var result []Instruction
-	switch instruction.GetType() {
+
+	instrType := instruction.GetType()
+
+	switch instrType {
 	case tacky.TacReturn:
 		ret := instruction.(*tacky.Return)
 		operand := t.translateOperand(ret.Val)
@@ -44,12 +48,19 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 		return result
 	case tacky.TacUnary:
 		unary := instruction.(*tacky.Unary)
-		op := t.translateUnaryOperator(unary.Op)
 		src := t.translateOperand(unary.Src)
 		dst := t.translateOperand(unary.Dst)
-		result = append(result,
-			NewMov(src, dst),
-			NewUnary(op, dst))
+		if unary.Op.GetType() != tacky.TacNot {
+			op := t.translateUnaryOperator(unary.Op)
+			result = append(result,
+				NewMov(src, dst),
+				NewUnary(op, dst))
+		} else {
+			result = append(result,
+				NewCmp(NewImmediate(0), src),
+				NewMov(NewImmediate(0), dst),
+				NewSetCC(CcEq, dst))
+		}
 		return result
 	case tacky.TacBinary:
 		binary := instruction.(*tacky.Binary)
@@ -69,12 +80,72 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 			return t.createIDivInstructions(true, src1, src2, dst)
 		case tacky.TacRemainder:
 			return t.createIDivInstructions(false, src1, src2, dst)
+		case tacky.TacEq, tacky.TacNotEq,
+			tacky.TacGt, tacky.TacGtEq,
+			tacky.TacLt, tacky.TacLtEq:
+			return t.translateRelation(binary)
 		default:
 			panic("unsupported binary operator")
 		}
+	case tacky.TacJump:
+		jump := instruction.(*tacky.Jump)
+		return []Instruction{NewJump(jump.Target)}
+	case tacky.TacJumpIfZero:
+		jumpIfZero := instruction.(*tacky.JumpIfZero)
+		cond := t.translateOperand(jumpIfZero.Condition)
+		return []Instruction{
+			NewCmp(NewImmediate(0), cond),
+			NewJumpCC(CcEq, jumpIfZero.Target),
+		}
+	case tacky.TacJumpIfNotZero:
+		jumpIfZero := instruction.(*tacky.JumpIfNotZero)
+		cond := t.translateOperand(jumpIfZero.Condition)
+		return []Instruction{
+			NewCmp(NewImmediate(0), cond),
+			NewJumpCC(CcNotEq, jumpIfZero.Target),
+		}
+	case tacky.TacCopy:
+		cp := instruction.(*tacky.Copy)
+		src := t.translateOperand(cp.Src)
+		dst := t.translateOperand(cp.Dst)
+		return []Instruction{NewMov(src, dst)}
+	case tacky.TacLabel:
+		label := instruction.(*tacky.Label)
+		return []Instruction{NewLabel(label.Name)}
 	default:
 		panic("unsupported instruction type")
 	}
+}
+
+func (t *Translator) translateRelation(binary *tacky.Binary) []Instruction {
+	src1 := t.translateOperand(binary.Src1)
+	src2 := t.translateOperand(binary.Src2)
+	dst := t.translateOperand(binary.Dst)
+	result := []Instruction{
+		NewCmp(src2, src1), // order of operands switched!
+		NewMov(NewImmediate(0), dst),
+	}
+	var conditionCode ConditionCode
+	switch binary.Op.GetType() {
+	case tacky.TacEq:
+		conditionCode = CcEq
+	case tacky.TacNotEq:
+		conditionCode = CcNotEq
+	case tacky.TacGt:
+		conditionCode = CcGt
+	case tacky.TacGtEq:
+		conditionCode = CcGtEq
+	case tacky.TacLt:
+		conditionCode = CcLt
+	case tacky.TacLtEq:
+		conditionCode = CcLtEq
+	default:
+		panic(fmt.Sprintf("unsupported relation type: %v", binary.Op.GetType()))
+	}
+
+	result = append(result, NewSetCC(conditionCode, dst))
+
+	return result
 }
 
 func (t *Translator) createIDivInstructions(calcQuotient bool, src1, src2, dst Operand) []Instruction {
@@ -110,7 +181,7 @@ func (t *Translator) translateUnaryOperator(op tacky.UnaryOp) UnaryOp {
 	case tacky.TacNegate:
 		return NewNeg()
 	default:
-		panic("unsupported operator type")
+		panic(fmt.Sprintf("unsupported operator type: %v", op.GetType()))
 	}
 }
 
@@ -193,6 +264,12 @@ func (pr *PseudoRegReplacer) VisitBinary(b *Binary) {
 	pr.result = &Binary{b.Op, operand1, operand2}
 }
 
+func (pr *PseudoRegReplacer) VisitCmp(c *Cmp) {
+	left := pr.eval(c.Left).(Operand)
+	right := pr.eval(c.Right).(Operand)
+	pr.result = NewCmp(left, right)
+}
+
 func (pr *PseudoRegReplacer) VisitIDiv(i *IDiv) {
 	operand := pr.eval(i.Operand).(Operand)
 	pr.result = &IDiv{operand}
@@ -200,6 +277,23 @@ func (pr *PseudoRegReplacer) VisitIDiv(i *IDiv) {
 
 func (pr *PseudoRegReplacer) VisitCdq(c *Cdq) {
 	pr.result = c
+}
+
+func (pr *PseudoRegReplacer) VisitJump(j *Jump) {
+	pr.result = j
+}
+
+func (pr *PseudoRegReplacer) VisitJumpCC(j *JumpCC) {
+	pr.result = j
+}
+
+func (pr *PseudoRegReplacer) VisitSetCC(s *SetCC) {
+	op := pr.eval(s.Op).(Operand)
+	pr.result = NewSetCC(s.CondCode, op)
+}
+
+func (pr *PseudoRegReplacer) VisitLabel(l *Label) {
+	pr.result = l
 }
 
 func (pr *PseudoRegReplacer) VisitAllocStack(a *AllocStack) {
@@ -312,6 +406,12 @@ func (ia *InstructionAdapter) VisitBinary(b *Binary) {
 				NewMov(b.Operand1, r10),
 				NewBinary(b.Op, r10, b.Operand2),
 			}
+		} else if b.Operand2.GetType() == AsmImmediate {
+			r11 := NewRegister(RegR11)
+			ia.result = []Instruction{
+				NewMov(b.Operand2, r11),
+				NewBinary(b.Op, b.Operand1, r11),
+			}
 		} else {
 			ia.result = []Instruction{b}
 		}
@@ -342,6 +442,27 @@ func (ia *InstructionAdapter) VisitBinary(b *Binary) {
 	}
 }
 
+func (ia *InstructionAdapter) VisitCmp(c *Cmp) {
+	leftType := c.Left.GetType()
+	rightType := c.Right.GetType()
+
+	if leftType == AsmStack && rightType == AsmStack {
+		r10 := NewRegister(RegR10)
+		ia.result = []Instruction{
+			NewMov(c.Left, r10),
+			NewCmp(r10, c.Right),
+		}
+	} else if rightType == AsmImmediate {
+		r11 := NewRegister(RegR11)
+		ia.result = []Instruction{
+			NewMov(c.Right, r11),
+			NewCmp(c.Left, r11),
+		}
+	} else {
+		ia.result = []Instruction{c}
+	}
+}
+
 func (ia *InstructionAdapter) VisitIDiv(i *IDiv) {
 	if i.Operand.GetType() == AsmImmediate {
 		r10 := NewRegister(RegR10)
@@ -356,6 +477,22 @@ func (ia *InstructionAdapter) VisitIDiv(i *IDiv) {
 
 func (ia *InstructionAdapter) VisitCdq(c *Cdq) {
 	ia.result = []Instruction{c}
+}
+
+func (ia *InstructionAdapter) VisitJump(j *Jump) {
+	ia.result = []Instruction{j}
+}
+
+func (ia *InstructionAdapter) VisitJumpCC(j *JumpCC) {
+	ia.result = []Instruction{j}
+}
+
+func (ia *InstructionAdapter) VisitSetCC(s *SetCC) {
+	ia.result = []Instruction{s}
+}
+
+func (ia *InstructionAdapter) VisitLabel(l *Label) {
+	ia.result = []Instruction{l}
 }
 
 func (ia *InstructionAdapter) VisitAllocStack(a *AllocStack) {

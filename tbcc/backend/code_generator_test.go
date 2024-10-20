@@ -40,6 +40,17 @@ int main(void) {
 	fmt.Print(asm)
 }
 
+func TestCodeGenerator_GenerateCode_AndFalse(t *testing.T) {
+	code := `int main(void) {
+    	return (10 && 0) + (0 && 4) + (0 && 0);
+	}`
+
+	asmProgram := codeToAsm(code)
+	asm := NewCodeGenerator().GenerateCode(*asmProgram)
+
+	fmt.Print(asm)
+}
+
 func codeToAsm(code string) *Program {
 	tokens, _ := frontend.Tokenize(code)
 	ast, _ := frontend.NewParser(tokens).ParseProgram()

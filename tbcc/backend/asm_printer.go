@@ -79,6 +79,19 @@ func (ap *AsmPrinter) VisitBinary(b *Binary) {
 	ap.println(")")
 }
 
+func (ap *AsmPrinter) VisitCmp(c *Cmp) {
+	ap.println("Cmp(")
+	ap.indent()
+	ap.print("left=")
+	ap.suppressPadding = true
+	c.Left.Accept(ap)
+	ap.print("right=")
+	ap.suppressPadding = true
+	c.Right.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AsmPrinter) VisitIDiv(i *IDiv) {
 	ap.println("IDiv(")
 	ap.indent()
@@ -93,9 +106,36 @@ func (ap *AsmPrinter) VisitCdq(*Cdq) {
 	ap.println("Cdq")
 }
 
+func (ap *AsmPrinter) VisitJump(j *Jump) {
+	ap.println(fmt.Sprintf("Jump(target=\"%s\")", j.Identifier))
+}
+
+func (ap *AsmPrinter) VisitJumpCC(j *JumpCC) {
+	ap.println("JumpCC(")
+	ap.indent()
+	ap.println(fmt.Sprintf("conditionCode=%d", j.CondCode))
+	ap.println(fmt.Sprintf("target=\"%s\")", j.Identifier))
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitSetCC(s *SetCC) {
+	ap.println("SetCC(")
+	ap.indent()
+	ap.println(fmt.Sprintf("conditionCode=%d", s.CondCode))
+	ap.print("operand=")
+	ap.suppressPadding = true
+	s.Op.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitLabel(l *Label) {
+	ap.println(fmt.Sprintf("Label(name=\"%s\")", l.Identifier))
+}
+
 func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
-	text := fmt.Sprintf("AllocStack(%d)", a.N)
-	ap.println(text)
+	ap.println(fmt.Sprintf("AllocStack(%d)", a.N))
 }
 
 func (ap *AsmPrinter) VisitReturn() {

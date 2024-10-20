@@ -5,11 +5,15 @@ import (
 )
 
 type CodeGenerator struct {
-	code string
+	code             string
+	use1ByteRegister bool
 }
 
 func NewCodeGenerator() *CodeGenerator {
-	return &CodeGenerator{}
+	return &CodeGenerator{
+		code:             "",
+		use1ByteRegister: false,
+	}
 }
 
 func (cg *CodeGenerator) GenerateCode(program Program) string {
@@ -59,6 +63,14 @@ func (cg *CodeGenerator) VisitBinary(b *Binary) {
 	cg.writeln("")
 }
 
+func (cg *CodeGenerator) VisitCmp(c *Cmp) {
+	cg.write("\tcmpl ")
+	c.Left.Accept(cg)
+	cg.write(", ")
+	c.Right.Accept(cg)
+	cg.writeln("")
+}
+
 func (cg *CodeGenerator) VisitIDiv(i *IDiv) {
 	cg.write("\tidivl ")
 	i.Operand.Accept(cg)
@@ -67,6 +79,28 @@ func (cg *CodeGenerator) VisitIDiv(i *IDiv) {
 
 func (cg *CodeGenerator) VisitCdq(*Cdq) {
 	cg.writeln("\tcdq")
+}
+
+func (cg *CodeGenerator) VisitJump(j *Jump) {
+	cg.writeln(fmt.Sprintf("\tjmp .L%s", j.Identifier))
+}
+
+func (cg *CodeGenerator) VisitJumpCC(j *JumpCC) {
+	cg.writeln(fmt.Sprintf("\tj%s .L%s",
+		cg.getCondInstrSuffix(j.CondCode),
+		j.Identifier))
+}
+
+func (cg *CodeGenerator) VisitSetCC(s *SetCC) {
+	cg.use1ByteRegister = true
+	cg.write(fmt.Sprintf("\tset%s ", cg.getCondInstrSuffix(s.CondCode)))
+	s.Op.Accept(cg)
+	cg.writeln("")
+	cg.use1ByteRegister = false
+}
+
+func (cg *CodeGenerator) VisitLabel(l *Label) {
+	cg.writeln(fmt.Sprintf(".L%s:", l.Identifier))
 }
 
 func (cg *CodeGenerator) VisitAllocStack(a *AllocStack) {
@@ -121,19 +155,36 @@ func (cg *CodeGenerator) VisitImmediate(i *Immediate) {
 }
 
 func (cg *CodeGenerator) VisitRegister(r *Register) {
-	switch r.Name {
-	case RegAX:
-		cg.write("%eax")
-	case RegCX:
-		cg.write("%ecx")
-	case RegDX:
-		cg.write("%edx")
-	case RegR10:
-		cg.write("%r10d")
-	case RegR11:
-		cg.write("%r11d")
-	default:
-		panic("unknown register name")
+	if !cg.use1ByteRegister {
+		switch r.Name {
+		case RegAX:
+			cg.write("%eax")
+		case RegCX:
+			cg.write("%ecx")
+		case RegDX:
+			cg.write("%edx")
+		case RegR10:
+			cg.write("%r10d")
+		case RegR11:
+			cg.write("%r11d")
+		default:
+			panic("unknown register name")
+		}
+	} else {
+		switch r.Name {
+		case RegAX:
+			cg.write("%al")
+		case RegCX:
+			cg.write("%cl")
+		case RegDX:
+			cg.write("%dl")
+		case RegR10:
+			cg.write("%r10b")
+		case RegR11:
+			cg.write("%r11b")
+		default:
+			panic("unknown register name")
+		}
 	}
 }
 
@@ -143,6 +194,25 @@ func (cg *CodeGenerator) VisitPseudoReg(*PseudoReg) {
 
 func (cg *CodeGenerator) VisitStack(s *Stack) {
 	cg.write(fmt.Sprintf("%d(%%rbp)", s.N))
+}
+
+func (cg *CodeGenerator) getCondInstrSuffix(conditionCode ConditionCode) string {
+	switch conditionCode {
+	case CcEq:
+		return "e"
+	case CcNotEq:
+		return "ne"
+	case CcLt:
+		return "l"
+	case CcLtEq:
+		return "le"
+	case CcGt:
+		return "g"
+	case CcGtEq:
+		return "ge"
+	default:
+		panic(fmt.Sprintf("unknown condition code: %v", conditionCode))
+	}
 }
 
 func (cg *CodeGenerator) write(text string) {
