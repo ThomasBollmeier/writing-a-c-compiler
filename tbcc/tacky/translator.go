@@ -28,16 +28,22 @@ func (t *Translator) translateFunction(f *frontend.Function) Function {
 	}
 }
 
-func (t *Translator) translateBody(body frontend.Statement) []Instruction {
-	switch body.GetType() {
-	case frontend.AstReturn:
-		retStmt := body.(*frontend.ReturnStmt)
-		val, instructions := t.translateExpr(retStmt.Expression)
-		instructions = append(instructions, &Return{val})
-		return instructions
-	default:
-		panic("unsupported statement type")
+func (t *Translator) translateBody(body []frontend.BodyItem) []Instruction {
+	var ret []Instruction
+
+	for _, item := range body {
+		switch item.GetType() {
+		case frontend.AstReturn:
+			retStmt := item.(*frontend.ReturnStmt)
+			val, instructions := t.translateExpr(retStmt.Expression)
+			ret = append(ret, instructions...)
+			ret = append(ret, &Return{val})
+		default:
+			panic("unsupported statement type")
+		}
 	}
+
+	return ret
 }
 
 func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instruction) {

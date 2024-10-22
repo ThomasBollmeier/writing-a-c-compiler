@@ -57,10 +57,25 @@ func (p *Parser) parseFunction() (*Function, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := p.parseStatement()
-	if err != nil {
-		return nil, err
+
+	var body []BodyItem
+	var bodyItem BodyItem
+
+	for {
+		token, err = p.peek()
+		if err != nil {
+			return nil, err
+		}
+		if token.tokenType == TokTypeRightBrace {
+			break
+		}
+		bodyItem, err = p.parseBodyItem()
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, bodyItem)
 	}
+
 	_, err = p.consume(TokTypeRightBrace)
 	if err != nil {
 		return nil, err
@@ -69,7 +84,96 @@ func (p *Parser) parseFunction() (*Function, error) {
 	return &Function{name, body}, nil
 }
 
+func (p *Parser) parseBodyItem() (BodyItem, error) {
+	token, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+	if token.tokenType == TokTypeInt {
+		return p.parseVarDeclaration()
+	} else {
+		return p.parseStatement()
+	}
+}
+
+func (p *Parser) parseVarDeclaration() (*VarDecl, error) {
+	var ret *VarDecl
+
+	_, err := p.consume(TokTypeInt)
+	if err != nil {
+		return nil, err
+	}
+	ident, err := p.consume(TokTypeIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+
+	var initValue Expression
+
+	switch token.tokenType {
+	case TokTypeEq:
+		_, _ = p.consume()
+		initValue, err = p.parseExpression(0)
+		if err != nil {
+			return nil, err
+		}
+		ret = &VarDecl{
+			Name:      ident.lexeme,
+			InitValue: initValue,
+		}
+	case TokTypeSemicolon:
+		ret = &VarDecl{
+			Name:      ident.lexeme,
+			InitValue: nil,
+		}
+	default:
+		return nil, errors.New("unexpected token at var declaration: " + token.lexeme)
+	}
+
+	_, err = p.consume(TokTypeSemicolon)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
 func (p *Parser) parseStatement() (Statement, error) {
+
+	token, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+
+	switch token.tokenType {
+	case TokTypeReturn:
+		return p.parseReturnStmt()
+	case TokTypeSemicolon:
+		_, _ = p.consume()
+		return &NullStmt{}, nil
+	default:
+		return p.parseExprStmt()
+	}
+}
+
+func (p *Parser) parseExprStmt() (*ExpressionStmt, error) {
+	expr, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeSemicolon)
+	if err != nil {
+		return nil, err
+	}
+	return &ExpressionStmt{expr}, nil
+}
+
+func (p *Parser) parseReturnStmt() (*ReturnStmt, error) {
 	_, err := p.consume(TokTypeReturn)
 	if err != nil {
 		return nil, err
@@ -98,15 +202,25 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 			return ret, nil
 		}
 
-		binOpPref, ok := binOpPreference[token.tokenType]
-		if !ok || binOpPref < minPrecedence {
+		prefInfo, ok := binOpPreference[token.tokenType]
+		if !ok {
 			return ret, nil
+		}
+		if prefInfo.Level < minPrecedence {
+			return ret, nil
+		}
+
+		var nextPref int
+		if prefInfo.Assoc == AssocLeft {
+			nextPref = prefInfo.Level + 1
+		} else {
+			nextPref = prefInfo.Level
 		}
 
 		binOpToken := token
 		_, _ = p.consume()
 
-		right, err := p.parseExpression(binOpPref + 1)
+		right, err := p.parseExpression(nextPref)
 		if err != nil {
 			return nil, err
 		}
@@ -133,6 +247,9 @@ func (p *Parser) parseFactor() (Expression, error) {
 			return nil, err
 		}
 		return &IntegerLiteral{int(value)}, nil
+	case TokTypeIdentifier:
+		ident, _ := p.consume()
+		return &Variable{Name: ident.lexeme}, nil
 	case TokTypeMinus, TokTypeTilde, TokTypeExclMark:
 		_, _ = p.consume()
 		operator := token.lexeme

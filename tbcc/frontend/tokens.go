@@ -35,6 +35,7 @@ const (
 	TokTypeGtEq
 	TokTypeLt
 	TokTypeLtEq
+	TokTypeEq
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -66,6 +67,7 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeGtEq:           ">=",
 	TokTypeLt:             "<",
 	TokTypeLtEq:           "<=",
+	TokTypeEq:             "=",
 }
 
 var strToKeyword = map[string]TokenType{
@@ -74,25 +76,38 @@ var strToKeyword = map[string]TokenType{
 	"return": TokTypeReturn,
 }
 
-var binOpPreference = map[TokenType]int{
-	TokTypeAsterisk:       50,
-	TokTypeSlash:          50,
-	TokTypePercent:        50,
-	TokTypePlus:           45,
-	TokTypeMinus:          45,
-	TokTypeLessLess:       40,
-	TokTypeGreaterGreater: 40,
-	TokTypeLt:             35,
-	TokTypeLtEq:           35,
-	TokTypeGt:             35,
-	TokTypeGtEq:           35,
-	TokTypeEqEq:           30,
-	TokTypeExclMarkEq:     30,
-	TokTypeAmpersand:      26,
-	TokTypeCaret:          25,
-	TokTypePipe:           20,
-	TokTypeAmperAmper:     10,
-	TokTypePipePipe:       5,
+type Associativity int
+
+const (
+	AssocLeft Associativity = iota
+	AssocRight
+)
+
+type PrefInfo struct {
+	Level int
+	Assoc Associativity
+}
+
+var binOpPreference = map[TokenType]PrefInfo{
+	TokTypeAsterisk:       {50, AssocLeft},
+	TokTypeSlash:          {50, AssocLeft},
+	TokTypePercent:        {50, AssocLeft},
+	TokTypePlus:           {45, AssocLeft},
+	TokTypeMinus:          {45, AssocLeft},
+	TokTypeLessLess:       {40, AssocLeft},
+	TokTypeGreaterGreater: {40, AssocLeft},
+	TokTypeLt:             {35, AssocLeft},
+	TokTypeLtEq:           {35, AssocLeft},
+	TokTypeGt:             {35, AssocLeft},
+	TokTypeGtEq:           {35, AssocLeft},
+	TokTypeEqEq:           {30, AssocLeft},
+	TokTypeExclMarkEq:     {30, AssocLeft},
+	TokTypeAmpersand:      {26, AssocLeft},
+	TokTypeCaret:          {25, AssocLeft},
+	TokTypePipe:           {20, AssocLeft},
+	TokTypeAmperAmper:     {10, AssocLeft},
+	TokTypePipePipe:       {5, AssocLeft},
+	TokTypeEq:             {1, AssocRight},
 }
 
 type Position struct {

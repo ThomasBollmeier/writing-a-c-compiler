@@ -5,11 +5,15 @@ type AstType int
 const (
 	AstProgram AstType = iota
 	AstFunction
+	AstVarDecl
 	AstReturn
+	AstExprStmt
+	AstNullStmt
 	AstInteger
-	AstIdentifier
+	AstVariable
 	AstUnary
 	AstBinary
+	AstAssignment
 )
 
 type AST interface {
@@ -20,11 +24,15 @@ type AST interface {
 type AstVisitor interface {
 	VisitProgram(p *Program)
 	VisitFunction(f *Function)
+	VisitVarDecl(v *VarDecl)
 	VisitReturn(r *ReturnStmt)
+	VisitExprStmt(e *ExpressionStmt)
+	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
-	VisitIdentifier(id *Identifier)
+	VisitVariable(v *Variable)
 	VisitUnary(u *UnaryExpression)
 	VisitBinary(b *BinaryExpression)
+	VisitAssignment(a *Assignment)
 }
 
 type Program struct {
@@ -40,7 +48,7 @@ func (p *Program) Accept(visitor AstVisitor) {
 
 type Function struct {
 	Name string
-	Body Statement
+	Body []BodyItem
 }
 
 func (f *Function) GetType() AstType {
@@ -49,6 +57,23 @@ func (f *Function) GetType() AstType {
 
 func (f *Function) Accept(visitor AstVisitor) {
 	visitor.VisitFunction(f)
+}
+
+type BodyItem interface {
+	AST
+}
+
+type VarDecl struct {
+	Name      string
+	InitValue Expression
+}
+
+func (v *VarDecl) GetType() AstType {
+	return AstVarDecl
+}
+
+func (v *VarDecl) Accept(visitor AstVisitor) {
+	visitor.VisitVarDecl(v)
 }
 
 type Statement interface {
@@ -67,6 +92,28 @@ func (r *ReturnStmt) Accept(visitor AstVisitor) {
 	visitor.VisitReturn(r)
 }
 
+type ExpressionStmt struct {
+	Expression Expression
+}
+
+func (e *ExpressionStmt) GetType() AstType {
+	return AstExprStmt
+}
+
+func (e *ExpressionStmt) Accept(visitor AstVisitor) {
+	visitor.VisitExprStmt(e)
+}
+
+type NullStmt struct{}
+
+func (n *NullStmt) GetType() AstType {
+	return AstNullStmt
+}
+
+func (n *NullStmt) Accept(visitor AstVisitor) {
+	visitor.VisitNullStmt()
+}
+
 type Expression interface {
 	AST
 }
@@ -83,16 +130,16 @@ func (i *IntegerLiteral) Accept(visitor AstVisitor) {
 	visitor.VisitInteger(i)
 }
 
-type Identifier struct {
-	Value string
+type Variable struct {
+	Name string
 }
 
-func (id *Identifier) GetType() AstType {
-	return AstIdentifier
+func (v *Variable) GetType() AstType {
+	return AstVariable
 }
 
-func (id *Identifier) Accept(visitor AstVisitor) {
-	visitor.VisitIdentifier(id)
+func (v *Variable) Accept(visitor AstVisitor) {
+	visitor.VisitVariable(v)
 }
 
 type UnaryExpression struct {
@@ -120,4 +167,17 @@ func (b *BinaryExpression) GetType() AstType {
 
 func (b *BinaryExpression) Accept(visitor AstVisitor) {
 	visitor.VisitBinary(b)
+}
+
+type Assignment struct {
+	Left  Expression
+	Right Expression
+}
+
+func (a *Assignment) GetType() AstType {
+	return AstAssignment
+}
+
+func (a *Assignment) Accept(visitor AstVisitor) {
+	visitor.VisitAssignment(a)
 }

@@ -40,6 +40,17 @@ int main(void) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseBodyItems(t *testing.T) {
+	code := `
+int main(void) {
+	int answer = 42;
+	40 + 2;
+	int a = b = c = 7 * 6;
+	return answer;
+}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseUnary(t *testing.T) {
 	code := `
 int main(void) {

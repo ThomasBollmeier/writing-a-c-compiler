@@ -24,9 +24,26 @@ func (ap *AstPrinter) VisitFunction(f *Function) {
 	ap.println("Function(")
 	ap.indent()
 	ap.println("name=\"" + f.Name + "\"")
-	ap.print("body=")
-	ap.suppressPadding = true
-	f.Body.Accept(ap)
+	ap.println("body=(")
+	ap.indent()
+	for _, item := range f.Body {
+		item.Accept(ap)
+	}
+	ap.dedent()
+	ap.println(")")
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitVarDecl(v *VarDecl) {
+	ap.println("VarDeclaration(")
+	ap.indent()
+	ap.println("name=\"" + v.Name + "\"")
+	if v.InitValue != nil {
+		ap.print("initValue=")
+		ap.suppressPadding = true
+		v.InitValue.Accept(ap)
+	}
 	ap.dedent()
 	ap.println(")")
 }
@@ -39,13 +56,27 @@ func (ap *AstPrinter) VisitReturn(r *ReturnStmt) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitExprStmt(e *ExpressionStmt) {
+	ap.println("ExpressionStatement(")
+	ap.indent()
+	ap.print("expression=")
+	ap.suppressPadding = true
+	e.Expression.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitNullStmt() {
+	ap.println("NullStatement()")
+}
+
 func (ap *AstPrinter) VisitInteger(i *IntegerLiteral) {
 	text := fmt.Sprintf("Constant(%d)", i.Value)
 	ap.println(text)
 }
 
-func (ap *AstPrinter) VisitIdentifier(id *Identifier) {
-	text := fmt.Sprintf("Identifier(%s)", id.Value)
+func (ap *AstPrinter) VisitVariable(v *Variable) {
+	text := fmt.Sprintf("Variable(%s)", v.Name)
 	ap.println(text)
 }
 
@@ -70,6 +101,19 @@ func (ap *AstPrinter) VisitBinary(binary *BinaryExpression) {
 	ap.print("right=")
 	ap.suppressPadding = true
 	binary.Right.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitAssignment(a *Assignment) {
+	ap.println("Assignment(")
+	ap.indent()
+	ap.print("left=")
+	ap.suppressPadding = true
+	a.Left.Accept(ap)
+	ap.print("right=")
+	ap.suppressPadding = true
+	a.Right.Accept(ap)
 	ap.dedent()
 	ap.println(")")
 }
