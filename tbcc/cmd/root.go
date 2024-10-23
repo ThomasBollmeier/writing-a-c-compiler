@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.5.0",
+	Version: "0.5.1",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)
@@ -29,6 +29,7 @@ var rootCmd = &cobra.Command{
 type Options struct {
 	stopAfterLex          bool
 	stopAfterParse        bool
+	stopAfterSemAnalysis  bool
 	stopAfterIR           bool
 	stopAfterCodegen      bool
 	stopAfterCodeEmission bool
@@ -37,6 +38,7 @@ type Options struct {
 var (
 	stopAfterLex          *bool = nil
 	stopAfterParse        *bool = nil
+	stopAfterSemAnalysis  *bool = nil
 	stopAfterIR           *bool = nil
 	stopAfterCodegen      *bool = nil
 	stopAfterCodeEmission *bool = nil
@@ -64,6 +66,7 @@ func run(args []string) error {
 	assemblyFile, err = compile(preProcessedFile, Options{
 		*stopAfterLex,
 		*stopAfterParse,
+		*stopAfterSemAnalysis,
 		*stopAfterIR,
 		*stopAfterCodegen,
 		*stopAfterCodeEmission,
@@ -126,8 +129,19 @@ func compile(preProcessedFile string, options Options) (string, error) {
 		return "", nil
 	}
 
+	// Semantic analysis
+	nameCreator := frontend.NewNameCreator()
+	program, err = frontend.AnalyzeSemantics(program, nameCreator)
+	if err != nil {
+		return "", err
+	}
+	if options.stopAfterSemAnalysis {
+		program.Accept(frontend.NewAstPrinter(4))
+		return "", nil
+	}
+
 	// Create TACKY
-	emitter := tacky.NewTranslator()
+	emitter := tacky.NewTranslator(nameCreator)
 	tackyProgram := emitter.Translate(program)
 	if options.stopAfterIR {
 		return "", nil
@@ -179,8 +193,9 @@ func Execute() {
 func init() {
 	stopAfterLex = rootCmd.PersistentFlags().Bool("lex", false, "stop after lexer")
 	stopAfterParse = rootCmd.PersistentFlags().Bool("parse", false, "stop after parser")
+	stopAfterSemAnalysis = rootCmd.PersistentFlags().Bool("validate", false, "stop after semantic analysis")
 	stopAfterIR = rootCmd.PersistentFlags().Bool("tacky", false, "stop after tacky generation")
 	stopAfterCodegen = rootCmd.PersistentFlags().Bool("codegen", false, "stop after codegen")
 	stopAfterCodeEmission = rootCmd.PersistentFlags().BoolP("emission", "S", false, "stop after emission")
-	rootCmd.MarkFlagsMutuallyExclusive("lex", "parse", "tacky", "codegen", "emission")
+	rootCmd.MarkFlagsMutuallyExclusive("lex", "parse", "validate", "tacky", "codegen", "emission")
 }

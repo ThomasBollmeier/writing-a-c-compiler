@@ -54,6 +54,7 @@ func TestCodeGenerator_GenerateCode_AndFalse(t *testing.T) {
 func codeToAsm(code string) *Program {
 	tokens, _ := frontend.Tokenize(code)
 	ast, _ := frontend.NewParser(tokens).ParseProgram()
-	tackyAst := tacky.NewTranslator().Translate(ast)
+	nameCreator := frontend.NewNameCreator()
+	tackyAst := tacky.NewTranslator(nameCreator).Translate(ast)
 	return NewTranslator().Translate(tackyAst)
 }

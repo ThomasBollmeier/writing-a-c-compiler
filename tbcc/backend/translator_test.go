@@ -13,7 +13,8 @@ int main(void) {
 }`
 	tokens, _ := frontend.Tokenize(code)
 	program, _ := frontend.NewParser(tokens).ParseProgram()
-	tackyProgram := tacky.NewTranslator().Translate(program)
+	nameCreator := frontend.NewNameCreator()
+	tackyProgram := tacky.NewTranslator(nameCreator).Translate(program)
 
 	translator := NewTranslator()
 	asmProgram := translator.Translate(tackyProgram)
@@ -28,7 +29,8 @@ int main(void) {
 }`
 	tokens, _ := frontend.Tokenize(code)
 	program, _ := frontend.NewParser(tokens).ParseProgram()
-	tackyProgram := tacky.NewTranslator().Translate(program)
+	nameCreator := frontend.NewNameCreator()
+	tackyProgram := tacky.NewTranslator(nameCreator).Translate(program)
 
 	translator := NewTranslator()
 	asmProgram := translator.Translate(tackyProgram)
@@ -43,7 +45,8 @@ int main(void) {
 }`
 	tokens, _ := frontend.Tokenize(code)
 	program, _ := frontend.NewParser(tokens).ParseProgram()
-	tackyProgram := tacky.NewTranslator().Translate(program)
+	nameCreator := frontend.NewNameCreator()
+	tackyProgram := tacky.NewTranslator(nameCreator).Translate(program)
 
 	translator := NewTranslator()
 	asmProgram := translator.Translate(tackyProgram)

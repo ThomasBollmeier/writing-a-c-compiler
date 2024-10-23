@@ -13,7 +13,6 @@ const (
 	AstVariable
 	AstUnary
 	AstBinary
-	AstAssignment
 )
 
 type AST interface {
@@ -32,7 +31,6 @@ type AstVisitor interface {
 	VisitVariable(v *Variable)
 	VisitUnary(u *UnaryExpression)
 	VisitBinary(b *BinaryExpression)
-	VisitAssignment(a *Assignment)
 }
 
 type Program struct {
@@ -167,17 +165,4 @@ func (b *BinaryExpression) GetType() AstType {
 
 func (b *BinaryExpression) Accept(visitor AstVisitor) {
 	visitor.VisitBinary(b)
-}
-
-type Assignment struct {
-	Left  Expression
-	Right Expression
-}
-
-func (a *Assignment) GetType() AstType {
-	return AstAssignment
-}
-
-func (a *Assignment) Accept(visitor AstVisitor) {
-	visitor.VisitAssignment(a)
 }

@@ -105,19 +105,6 @@ func (ap *AstPrinter) VisitBinary(binary *BinaryExpression) {
 	ap.println(")")
 }
 
-func (ap *AstPrinter) VisitAssignment(a *Assignment) {
-	ap.println("Assignment(")
-	ap.indent()
-	ap.print("left=")
-	ap.suppressPadding = true
-	a.Left.Accept(ap)
-	ap.print("right=")
-	ap.suppressPadding = true
-	a.Right.Accept(ap)
-	ap.dedent()
-	ap.println(")")
-}
-
 func (ap *AstPrinter) indent() {
 	ap.offset += ap.delta
 }

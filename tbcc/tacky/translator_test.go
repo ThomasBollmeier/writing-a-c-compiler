@@ -12,7 +12,7 @@ int main(void) {
 	return ~(-42);
 }`
 	ast := parse(code)
-	translator := NewTranslator()
+	translator := NewTranslator(frontend.NewNameCreator())
 	program := translator.Translate(ast)
 
 	fmt.Println(program)
@@ -24,7 +24,7 @@ int main(void) {
 	return 21 << 1;
 }`
 	ast := parse(code)
-	translator := NewTranslator()
+	translator := NewTranslator(frontend.NewNameCreator())
 	program := translator.Translate(ast)
 
 	fmt.Println(program)

@@ -1,20 +1,15 @@
 package tacky
 
 import (
-	"fmt"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
 )
 
 type Translator struct {
-	nextCounter   uint
-	labelCounters map[string]uint
+	nameCreator frontend.NameCreator
 }
 
-func NewTranslator() *Translator {
-	return &Translator{
-		0,
-		make(map[string]uint),
-	}
+func NewTranslator(nameCreator frontend.NameCreator) *Translator {
+	return &Translator{nameCreator}
 }
 
 func (t *Translator) Translate(program *frontend.Program) *Program {
@@ -132,23 +127,6 @@ func (t *Translator) translateExprWithShortCircuit(
 	return varResult, instructions
 }
 
-func (t *Translator) createVarName() string {
-	varName := fmt.Sprintf("tmp.%d", t.nextCounter)
-	t.nextCounter++
-	return varName
-}
-
-func (t *Translator) createLabelName(prefix string) string {
-	current, ok := t.labelCounters[prefix]
-	if !ok {
-		current = 0
-	}
-	ret := fmt.Sprintf("%s%d", prefix, current)
-	current++
-	t.labelCounters[prefix] = current
-	return ret
-}
-
 func (t *Translator) getUnaryOp(op string) UnaryOp {
 	switch op {
 	case "-":
@@ -203,4 +181,12 @@ func (t *Translator) getBinaryOp(op string) BinaryOp {
 	default:
 		panic("unsupported operator: " + op)
 	}
+}
+
+func (t *Translator) createVarName() string {
+	return t.nameCreator.VarName()
+}
+
+func (t *Translator) createLabelName(prefix string) string {
+	return t.nameCreator.LabelName(prefix)
 }
