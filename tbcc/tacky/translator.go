@@ -28,15 +28,29 @@ func (t *Translator) translateBody(body []frontend.BodyItem) []Instruction {
 
 	for _, item := range body {
 		switch item.GetType() {
+		case frontend.AstVarDecl:
+			varDecl := item.(*frontend.VarDecl)
+			if varDecl.InitValue != nil {
+				val, instructions := t.translateExpr(varDecl.InitValue)
+				ret = append(ret, instructions...)
+				ret = append(ret, &Copy{val, &Var{varDecl.Name}})
+			}
 		case frontend.AstReturn:
 			retStmt := item.(*frontend.ReturnStmt)
 			val, instructions := t.translateExpr(retStmt.Expression)
 			ret = append(ret, instructions...)
 			ret = append(ret, &Return{val})
+		case frontend.AstExprStmt:
+			exprStmt := item.(*frontend.ExpressionStmt)
+			_, instructions := t.translateExpr(exprStmt.Expression)
+			ret = append(ret, instructions...)
+		case frontend.AstNullStmt:
 		default:
 			panic("unsupported statement type")
 		}
 	}
+
+	ret = append(ret, &Return{&IntConstant{0}})
 
 	return ret
 }
@@ -46,6 +60,9 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 	case frontend.AstInteger:
 		val := expr.(*frontend.IntegerLiteral).Value
 		return &IntConstant{val}, nil
+	case frontend.AstVariable:
+		variable := expr.(*frontend.Variable)
+		return &Var{variable.Name}, nil
 	case frontend.AstUnary:
 		unary := expr.(*frontend.UnaryExpression)
 		unaryOp := t.getUnaryOp(unary.Operator)
@@ -55,21 +72,33 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 		return dst, instructions
 	case frontend.AstBinary:
 		binary := expr.(*frontend.BinaryExpression)
-		binaryOp := t.getBinaryOp(binary.Operator)
-		binaryOpType := binaryOp.GetType()
-		if binaryOpType != TacAnd && binaryOpType != TacOr {
-			src1, instructions := t.translateExpr(binary.Left)
-			src2, instructions2 := t.translateExpr(binary.Right)
-			instructions = append(instructions, instructions2...)
-			dst := &Var{t.createVarName()}
-			instructions = append(instructions, &Binary{binaryOp, src1, src2, dst})
-			return dst, instructions
+		if binary.Operator == "=" {
+			return t.translateAssignment(binary)
 		} else {
-			return t.translateExprWithShortCircuit(binaryOp, binary.Left, binary.Right)
+			binaryOp := t.getBinaryOp(binary.Operator)
+			binaryOpType := binaryOp.GetType()
+			if binaryOpType != TacAnd && binaryOpType != TacOr {
+				src1, instructions := t.translateExpr(binary.Left)
+				src2, instructions2 := t.translateExpr(binary.Right)
+				instructions = append(instructions, instructions2...)
+				dst := &Var{t.createVarName()}
+				instructions = append(instructions, &Binary{binaryOp, src1, src2, dst})
+				return dst, instructions
+			} else {
+				return t.translateExprWithShortCircuit(binaryOp, binary.Left, binary.Right)
+			}
 		}
 	default:
 		panic("unsupported expression type")
 	}
+}
+
+func (t *Translator) translateAssignment(assignment *frontend.BinaryExpression) (Value, []Instruction) {
+	rhsValue, instructions := t.translateExpr(assignment.Right)
+	v := assignment.Left.(*frontend.Variable)
+	variable := &Var{v.Name}
+	instructions = append(instructions, &Copy{rhsValue, variable})
+	return variable, instructions
 }
 
 func (t *Translator) translateExprWithShortCircuit(
