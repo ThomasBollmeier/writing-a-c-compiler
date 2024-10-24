@@ -225,10 +225,25 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 			return nil, err
 		}
 
-		ret = &BinaryExpression{
-			binOpToken.lexeme,
-			ret,
-			right,
+		switch binOpToken.lexeme {
+		case "+=", "-=", "*=", "/=", "%=":
+			// Compound assignment => expand it:
+			op := binOpToken.lexeme[0:1]
+			ret = &BinaryExpression{
+				"=",
+				ret,
+				&BinaryExpression{
+					op,
+					ret,
+					right,
+				},
+			}
+		default:
+			ret = &BinaryExpression{
+				binOpToken.lexeme,
+				ret,
+				right,
+			}
 		}
 	}
 }

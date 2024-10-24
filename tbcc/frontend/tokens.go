@@ -36,6 +36,11 @@ const (
 	TokTypeLt
 	TokTypeLtEq
 	TokTypeEq
+	TokTypePlusEq
+	TokTypeMinusEq
+	TokTypeAsteriskEq
+	TokTypeSlashEq
+	TokTypePercentEq
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -68,6 +73,11 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeLt:             "<",
 	TokTypeLtEq:           "<=",
 	TokTypeEq:             "=",
+	TokTypePlusEq:         "\\+=",
+	TokTypeMinusEq:        "-=",
+	TokTypeAsteriskEq:     "\\*=",
+	TokTypeSlashEq:        "/=",
+	TokTypePercentEq:      "%=",
 }
 
 var strToKeyword = map[string]TokenType{
@@ -108,6 +118,11 @@ var binOpPreference = map[TokenType]PrefInfo{
 	TokTypeAmperAmper:     {10, AssocLeft},
 	TokTypePipePipe:       {5, AssocLeft},
 	TokTypeEq:             {1, AssocRight},
+	TokTypePlusEq:         {1, AssocRight},
+	TokTypeMinusEq:        {1, AssocRight},
+	TokTypeAsteriskEq:     {1, AssocRight},
+	TokTypeSlashEq:        {1, AssocRight},
+	TokTypePercentEq:      {1, AssocRight},
 }
 
 type Position struct {
