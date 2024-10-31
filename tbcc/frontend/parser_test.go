@@ -106,6 +106,36 @@ func TestParser_ParseCompoundAssignment(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParsePrefixIncrement(t *testing.T) {
+	code := `int main(void) {
+		int a = 41;
+		return ++a;
+	}`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseIncrements(t *testing.T) {
+	code := `int main(void) {
+		int a = 0;
+		int b = 0;
+		a++;
+		++a;
+		++a;
+		b--;
+		--b;
+		return (a == 3 && b == -2);
+	}`
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParsePostfixIncrement(t *testing.T) {
+	code := `int main(void) {
+		int a = 42;
+		return a++;
+	}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {

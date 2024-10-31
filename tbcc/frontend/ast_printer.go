@@ -91,6 +91,17 @@ func (ap *AstPrinter) VisitUnary(unary *UnaryExpression) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitPostfixIncDec(p *PostfixIncDec) {
+	ap.println("PostfixIncDec(")
+	ap.indent()
+	ap.print("operator=\"" + p.Operator + "\"\n")
+	ap.print("operand=")
+	ap.suppressPadding = true
+	p.Operand.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) VisitBinary(binary *BinaryExpression) {
 	ap.println("Binary(")
 	ap.indent()

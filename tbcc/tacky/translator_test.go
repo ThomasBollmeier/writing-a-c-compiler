@@ -38,6 +38,16 @@ int main(void) {
 	fmt.Println(program)
 }
 
+func TestTranslator_Translate_PostfixInc(t *testing.T) {
+	code := `
+int main(void) {
+	int a = 42;
+	return a++;
+}`
+	program := translate(code)
+	fmt.Println(program)
+}
+
 func translate(code string) *Program {
 	nameCreator := frontend.NewNameCreator()
 	tokens, _ := frontend.Tokenize(code)

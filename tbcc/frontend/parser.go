@@ -249,6 +249,9 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 }
 
 func (p *Parser) parseFactor() (Expression, error) {
+
+	var ret Expression = nil
+
 	token, err := p.peek()
 	if err != nil {
 		return nil, err
@@ -261,10 +264,10 @@ func (p *Parser) parseFactor() (Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &IntegerLiteral{int(value)}, nil
+		ret = &IntegerLiteral{int(value)}
 	case TokTypeIdentifier:
 		ident, _ := p.consume()
-		return &Variable{Name: ident.lexeme}, nil
+		ret = &Variable{ident.lexeme}
 	case TokTypeMinus, TokTypeTilde, TokTypeExclMark:
 		_, _ = p.consume()
 		operator := token.lexeme
@@ -272,7 +275,33 @@ func (p *Parser) parseFactor() (Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &UnaryExpression{operator, right}, nil
+		ret = &UnaryExpression{operator, right}
+	case TokTypePlusPlus, TokTypeMinusMinus:
+		_, _ = p.consume()
+		var operator string
+		if token.tokenType == TokTypePlusPlus {
+			operator = "+"
+		} else {
+			operator = "-"
+		}
+		factor, err := p.parseFactor()
+		if err != nil {
+			return nil, err
+		}
+		lvalue, ok := factor.(*Variable)
+		if !ok {
+			return nil, errors.New("unexpected token after increment or decrement")
+		}
+
+		ret = &BinaryExpression{
+			"=",
+			lvalue,
+			&BinaryExpression{
+				operator,
+				lvalue,
+				&IntegerLiteral{1},
+			},
+		}
 	case TokTypeLeftParen:
 		_, _ = p.consume()
 		expr, err := p.parseExpression(0)
@@ -283,10 +312,24 @@ func (p *Parser) parseFactor() (Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return expr, nil
+		ret = expr
 	default:
 		return nil, errors.New("unexpected token: " + token.lexeme)
 	}
+
+	if lvalue, ok := ret.(*Variable); ok {
+		nextToken, err := p.peek()
+		if err == nil &&
+			(nextToken.tokenType == TokTypePlusPlus || nextToken.tokenType == TokTypeMinusMinus) {
+			_, _ = p.consume()
+			ret = &PostfixIncDec{
+				nextToken.lexeme,
+				*lvalue,
+			}
+		}
+	}
+
+	return ret, nil
 }
 
 func (p *Parser) consume(expected ...TokenType) (*Token, error) {

@@ -70,6 +70,8 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 		dst := &Var{t.createVarName()}
 		instructions = append(instructions, &Unary{unaryOp, src, dst})
 		return dst, instructions
+	case frontend.AstPostfixIncDec:
+		return t.translatePostfixIncDec(expr.(*frontend.PostfixIncDec))
 	case frontend.AstBinary:
 		binary := expr.(*frontend.BinaryExpression)
 		if binary.Operator == "=" {
@@ -91,6 +93,28 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 	default:
 		panic("unsupported expression type")
 	}
+}
+
+func (t *Translator) translatePostfixIncDec(postfixIncDec *frontend.PostfixIncDec) (Value, []Instruction) {
+	resultValue := &Var{t.createVarName()}
+	value := &Var{postfixIncDec.Operand.Name}
+
+	var binOp BinaryOp
+	if postfixIncDec.Operator == "++" {
+		binOp = &Add{}
+	} else {
+		binOp = &Sub{}
+	}
+
+	instructions := []Instruction{&Copy{value, resultValue}}
+	instructions = append(instructions, &Binary{
+		binOp,
+		value,
+		&IntConstant{1},
+		value,
+	})
+
+	return resultValue, instructions
 }
 
 func (t *Translator) translateAssignment(assignment *frontend.BinaryExpression) (Value, []Instruction) {

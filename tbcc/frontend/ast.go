@@ -12,6 +12,7 @@ const (
 	AstInteger
 	AstVariable
 	AstUnary
+	AstPostfixIncDec
 	AstBinary
 )
 
@@ -30,6 +31,7 @@ type AstVisitor interface {
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
 	VisitUnary(u *UnaryExpression)
+	VisitPostfixIncDec(p *PostfixIncDec)
 	VisitBinary(b *BinaryExpression)
 }
 
@@ -151,6 +153,19 @@ func (u *UnaryExpression) GetType() AstType {
 
 func (u *UnaryExpression) Accept(visitor AstVisitor) {
 	visitor.VisitUnary(u)
+}
+
+type PostfixIncDec struct {
+	Operator string
+	Operand  Variable
+}
+
+func (p *PostfixIncDec) GetType() AstType {
+	return AstPostfixIncDec
+}
+
+func (p *PostfixIncDec) Accept(visitor AstVisitor) {
+	visitor.VisitPostfixIncDec(p)
 }
 
 type BinaryExpression struct {

@@ -125,6 +125,17 @@ func (vr *variableResolver) VisitUnary(u *UnaryExpression) {
 	}, nil)
 }
 
+func (vr *variableResolver) VisitPostfixIncDec(p *PostfixIncDec) {
+	newOperand, err := vr.evalAst(&p.Operand)
+	if err != nil {
+		return
+	}
+	vr.setResult(&PostfixIncDec{
+		Operator: p.Operator,
+		Operand:  *newOperand.(*Variable),
+	}, nil)
+}
+
 func (vr *variableResolver) VisitBinary(b *BinaryExpression) {
 	var newLeft Expression
 	var newRight Expression

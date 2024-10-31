@@ -20,6 +20,7 @@ const (
 	TokTypeAsterisk
 	TokTypeSlash
 	TokTypePercent
+	TokTypePlusPlus
 	TokTypeMinusMinus
 	TokTypeAmpersand
 	TokTypePipe
@@ -57,6 +58,7 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeAsterisk:       "\\*",
 	TokTypeSlash:          "/",
 	TokTypePercent:        "%",
+	TokTypePlusPlus:       "\\+\\+",
 	TokTypeMinusMinus:     "--",
 	TokTypeAmpersand:      "&",
 	TokTypePipe:           "\\|",
