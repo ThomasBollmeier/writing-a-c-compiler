@@ -47,6 +47,10 @@ const (
 	TokTypeCaretEq
 	TokTypeLessLessEq
 	TokTypeGreaterGreaterEq
+	TokTypeIf
+	TokTypeElse
+	TokTypeQuestionMark
+	TokTypeColon
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -90,12 +94,16 @@ var tokenTypeToRegexStr = map[TokenType]string{
 	TokTypeCaretEq:          "\\^=",
 	TokTypeLessLessEq:       "<<=",
 	TokTypeGreaterGreaterEq: ">>=",
+	TokTypeQuestionMark:     "\\?",
+	TokTypeColon:            ":",
 }
 
 var strToKeyword = map[string]TokenType{
 	"int":    TokTypeInt,
 	"void":   TokTypeVoid,
 	"return": TokTypeReturn,
+	"if":     TokTypeIf,
+	"else":   TokTypeElse,
 }
 
 type Associativity int
