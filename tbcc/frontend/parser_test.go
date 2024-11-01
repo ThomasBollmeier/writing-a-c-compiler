@@ -178,6 +178,18 @@ func TestParser_ParseConditional(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParserNestedTernary(t *testing.T) {
+	code := `int main(void) {
+ 	   	int a = 1;
+		int b = 2;
+    	int flag = 0;
+    	
+		return a > b ? 5 : flag ? 6 : 7;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {

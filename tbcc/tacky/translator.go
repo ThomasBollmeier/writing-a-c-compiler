@@ -35,22 +35,59 @@ func (t *Translator) translateBody(body []frontend.BodyItem) []Instruction {
 				ret = append(ret, instructions...)
 				ret = append(ret, &Copy{val, &Var{varDecl.Name}})
 			}
-		case frontend.AstReturn:
-			retStmt := item.(*frontend.ReturnStmt)
-			val, instructions := t.translateExpr(retStmt.Expression)
-			ret = append(ret, instructions...)
-			ret = append(ret, &Return{val})
-		case frontend.AstExprStmt:
-			exprStmt := item.(*frontend.ExpressionStmt)
-			_, instructions := t.translateExpr(exprStmt.Expression)
-			ret = append(ret, instructions...)
-		case frontend.AstNullStmt:
 		default:
-			panic("unsupported statement type")
+			ret = append(ret, t.translateStatement(item)...)
 		}
 	}
 
 	ret = append(ret, &Return{&IntConstant{0}})
+
+	return ret
+}
+
+func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
+	var ret []Instruction
+	var val Value
+
+	switch stmt.GetType() {
+	case frontend.AstReturn:
+		retStmt := stmt.(*frontend.ReturnStmt)
+		val, ret = t.translateExpr(retStmt.Expression)
+		ret = append(ret, &Return{val})
+	case frontend.AstExprStmt:
+		exprStmt := stmt.(*frontend.ExpressionStmt)
+		_, ret = t.translateExpr(exprStmt.Expression)
+	case frontend.AstIfStmt:
+		ret = t.translateIfStmt(stmt.(*frontend.IfStmt))
+	case frontend.AstNullStmt:
+	default:
+		panic("unsupported statement type")
+	}
+
+	return ret
+}
+
+func (t *Translator) translateIfStmt(ifStmt *frontend.IfStmt) []Instruction {
+	var ret []Instruction
+	var condValue Value
+
+	if ifStmt.Alternate == nil {
+		condValue, ret = t.translateExpr(ifStmt.Condition)
+		endLabelName := t.createLabelName("end")
+		ret = append(ret, &JumpIfZero{condValue, endLabelName})
+		ret = append(ret, t.translateStatement(ifStmt.Consequent)...)
+		ret = append(ret, &Label{endLabelName})
+	} else {
+		condValue, ret = t.translateExpr(ifStmt.Condition)
+		endLabelName := t.createLabelName("end")
+		elseLabelName := t.createLabelName("else")
+		ret = append(ret, &JumpIfZero{condValue, elseLabelName})
+		ret = append(ret, t.translateStatement(ifStmt.Consequent)...)
+		ret = append(ret, &Jump{endLabelName})
+		ret = append(ret, &Label{elseLabelName})
+		ret = append(ret, t.translateStatement(ifStmt.Alternate)...)
+		ret = append(ret, &Label{endLabelName})
+	}
 
 	return ret
 }
@@ -90,9 +127,33 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 				return t.translateExprWithShortCircuit(binaryOp, binary.Left, binary.Right)
 			}
 		}
+	case frontend.AstConditional:
+		conditional := expr.(*frontend.Conditional)
+		return t.translateConditional(conditional)
 	default:
 		panic("unsupported expression type")
 	}
+}
+
+func (t *Translator) translateConditional(conditional *frontend.Conditional) (Value, []Instruction) {
+	resultValue := &Var{t.createVarName()}
+
+	condValue, instructions := t.translateExpr(conditional.Condition)
+	endLabelName := t.createLabelName("end")
+	elseLabelName := t.createLabelName("else")
+
+	instructions = append(instructions, &JumpIfZero{condValue, elseLabelName})
+	consValue, consInstructions := t.translateExpr(conditional.Consequent)
+	instructions = append(instructions, consInstructions...)
+	instructions = append(instructions, &Copy{consValue, resultValue})
+	instructions = append(instructions, &Jump{endLabelName})
+	instructions = append(instructions, &Label{elseLabelName})
+	altValue, altInstructions := t.translateExpr(conditional.Alternate)
+	instructions = append(instructions, altInstructions...)
+	instructions = append(instructions, &Copy{altValue, resultValue})
+	instructions = append(instructions, &Label{endLabelName})
+
+	return resultValue, instructions
 }
 
 func (t *Translator) translatePostfixIncDec(postfixIncDec *frontend.PostfixIncDec) (Value, []Instruction) {

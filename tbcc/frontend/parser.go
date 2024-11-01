@@ -243,19 +243,19 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 			return ret, nil
 		}
 
-		if token.tokenType == TokTypeQuestionMark {
-			ret, err = p.parseConditional(ret)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-
 		var nextPref int
 		if prefInfo.Assoc == AssocLeft {
 			nextPref = prefInfo.Level + 1
 		} else {
 			nextPref = prefInfo.Level
+		}
+
+		if token.tokenType == TokTypeQuestionMark {
+			ret, err = p.parseConditional(ret, nextPref)
+			if err != nil {
+				return nil, err
+			}
+			continue
 		}
 
 		binOpToken := token
@@ -290,14 +290,14 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 	}
 }
 
-func (p *Parser) parseConditional(condition Expression) (Expression, error) {
+func (p *Parser) parseConditional(condition Expression, minPrecedence int) (Expression, error) {
 	_, _ = p.consume(TokTypeQuestionMark)
 	consequent, err := p.parseExpression(0)
 	if err != nil {
 		return nil, err
 	}
 	_, _ = p.consume(TokTypeColon)
-	alternate, err := p.parseExpression(0)
+	alternate, err := p.parseExpression(minPrecedence)
 	if err != nil {
 		return nil, err
 	}
