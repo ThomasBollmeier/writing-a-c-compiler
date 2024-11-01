@@ -106,6 +106,15 @@ func TestParser_ParseCompoundAssignment(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseCompoundAssignmentBinary(t *testing.T) {
+	code := `int main(void) {
+		int a = 21;
+		a &= 1 + 1;
+		return a;
+	}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParsePrefixIncrement(t *testing.T) {
 	code := `int main(void) {
 		int a = 41;

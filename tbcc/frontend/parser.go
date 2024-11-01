@@ -226,7 +226,8 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 		}
 
 		switch binOpToken.lexeme {
-		case "+=", "-=", "*=", "/=", "%=":
+		case "+=", "-=", "*=", "/=", "%=",
+			"&=", "|=", "^=", "<<=", ">>=":
 			// Compound assignment => expand it:
 			op := binOpToken.lexeme[0:1]
 			ret = &BinaryExpression{
