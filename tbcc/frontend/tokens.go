@@ -137,6 +137,7 @@ var binOpPreference = map[TokenType]PrefInfo{
 	TokTypePipe:             {20, AssocLeft},
 	TokTypeAmperAmper:       {10, AssocLeft},
 	TokTypePipePipe:         {5, AssocLeft},
+	TokTypeQuestionMark:     {3, AssocRight},
 	TokTypeEq:               {1, AssocRight},
 	TokTypePlusEq:           {1, AssocRight},
 	TokTypeMinusEq:          {1, AssocRight},

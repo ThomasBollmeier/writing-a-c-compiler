@@ -8,12 +8,14 @@ const (
 	AstVarDecl
 	AstReturn
 	AstExprStmt
+	AstIfStmt
 	AstNullStmt
 	AstInteger
 	AstVariable
 	AstUnary
 	AstPostfixIncDec
 	AstBinary
+	AstConditional
 )
 
 type AST interface {
@@ -27,12 +29,14 @@ type AstVisitor interface {
 	VisitVarDecl(v *VarDecl)
 	VisitReturn(r *ReturnStmt)
 	VisitExprStmt(e *ExpressionStmt)
+	VisitIfStmt(i *IfStmt)
 	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
 	VisitUnary(u *UnaryExpression)
 	VisitPostfixIncDec(p *PostfixIncDec)
 	VisitBinary(b *BinaryExpression)
+	VisitConditional(c *Conditional)
 }
 
 type Program struct {
@@ -102,6 +106,20 @@ func (e *ExpressionStmt) GetType() AstType {
 
 func (e *ExpressionStmt) Accept(visitor AstVisitor) {
 	visitor.VisitExprStmt(e)
+}
+
+type IfStmt struct {
+	Condition  Expression
+	Consequent Statement
+	Alternate  Statement
+}
+
+func (i *IfStmt) GetType() AstType {
+	return AstIfStmt
+}
+
+func (i *IfStmt) Accept(visitor AstVisitor) {
+	visitor.VisitIfStmt(i)
 }
 
 type NullStmt struct{}
@@ -180,4 +198,18 @@ func (b *BinaryExpression) GetType() AstType {
 
 func (b *BinaryExpression) Accept(visitor AstVisitor) {
 	visitor.VisitBinary(b)
+}
+
+type Conditional struct {
+	Condition  Expression
+	Consequent Expression
+	Alternate  Expression
+}
+
+func (c *Conditional) GetType() AstType {
+	return AstConditional
+}
+
+func (c *Conditional) Accept(visitor AstVisitor) {
+	visitor.VisitConditional(c)
 }

@@ -153,12 +153,45 @@ func (p *Parser) parseStatement() (Statement, error) {
 	switch token.tokenType {
 	case TokTypeReturn:
 		return p.parseReturnStmt()
+	case TokTypeIf:
+		return p.parseIfStmt()
 	case TokTypeSemicolon:
 		_, _ = p.consume()
 		return &NullStmt{}, nil
 	default:
 		return p.parseExprStmt()
 	}
+}
+
+func (p *Parser) parseIfStmt() (*IfStmt, error) {
+	_, _ = p.consume(TokTypeIf)
+	_, err := p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeRightParen)
+	if err != nil {
+		return nil, err
+	}
+	consequent, err := p.parseStatement()
+	if err != nil {
+		return nil, err
+	}
+	var alternate Statement
+	nextToken, err := p.peek()
+	if err == nil && nextToken.tokenType == TokTypeElse {
+		_, _ = p.consume(TokTypeElse)
+		alternate, err = p.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &IfStmt{condition, consequent, alternate}, nil
 }
 
 func (p *Parser) parseExprStmt() (*ExpressionStmt, error) {
@@ -210,6 +243,14 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 			return ret, nil
 		}
 
+		if token.tokenType == TokTypeQuestionMark {
+			ret, err = p.parseConditional(ret)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+
 		var nextPref int
 		if prefInfo.Assoc == AssocLeft {
 			nextPref = prefInfo.Level + 1
@@ -247,6 +288,24 @@ func (p *Parser) parseExpression(minPrecedence int) (Expression, error) {
 			}
 		}
 	}
+}
+
+func (p *Parser) parseConditional(condition Expression) (Expression, error) {
+	_, _ = p.consume(TokTypeQuestionMark)
+	consequent, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, _ = p.consume(TokTypeColon)
+	alternate, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	return &Conditional{
+		condition,
+		consequent,
+		alternate,
+	}, nil
 }
 
 func (p *Parser) parseFactor() (Expression, error) {

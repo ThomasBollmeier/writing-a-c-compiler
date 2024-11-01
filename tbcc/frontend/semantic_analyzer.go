@@ -97,6 +97,29 @@ func (vr *variableResolver) VisitExprStmt(e *ExpressionStmt) {
 	vr.setResult(&ExpressionStmt{newExpr}, nil)
 }
 
+func (vr *variableResolver) VisitIfStmt(i *IfStmt) {
+	newCondition, err := vr.evalAst(i.Condition)
+	if err != nil {
+		return
+	}
+	newConsequent, err := vr.evalAst(i.Consequent)
+	if err != nil {
+		return
+	}
+	var newAlternate Statement = nil
+	if i.Alternate != nil {
+		newAlternate, err = vr.evalAst(i.Alternate)
+		if err != nil {
+			return
+		}
+	}
+	vr.setResult(&IfStmt{
+		newCondition,
+		newConsequent,
+		newAlternate,
+	}, nil)
+}
+
 func (vr *variableResolver) VisitNullStmt() {
 	vr.setResult(&NullStmt{}, nil)
 }
@@ -161,6 +184,26 @@ func (vr *variableResolver) VisitBinary(b *BinaryExpression) {
 		Operator: b.Operator,
 		Left:     newLeft,
 		Right:    newRight,
+	}, nil)
+}
+
+func (vr *variableResolver) VisitConditional(cond *Conditional) {
+	newCond, err := vr.evalAst(cond.Condition)
+	if err != nil {
+		return
+	}
+	newConsequent, err := vr.evalAst(cond.Consequent)
+	if err != nil {
+		return
+	}
+	newAlternate, err := vr.evalAst(cond.Alternate)
+	if err != nil {
+		return
+	}
+	vr.setResult(&Conditional{
+		newCond,
+		newConsequent,
+		newAlternate,
 	}, nil)
 }
 

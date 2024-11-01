@@ -145,6 +145,39 @@ func TestParser_ParsePostfixIncrement(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseIfStatement(t *testing.T) {
+	code := `int main(void) {
+		int ok = 1;
+		if (ok)
+			return 42;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseIfElseStatement(t *testing.T) {
+	code := `int main(void) {
+		int ok = 1;
+		if (ok)
+			return 42;
+		else
+			return 23;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseConditional(t *testing.T) {
+	code := `int main(void) {
+    	int a = 2;
+    	int b = 1;
+    	a > b ? a = 1 : a = 0;
+    	return a;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {

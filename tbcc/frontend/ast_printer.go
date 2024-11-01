@@ -66,6 +66,24 @@ func (ap *AstPrinter) VisitExprStmt(e *ExpressionStmt) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitIfStmt(i *IfStmt) {
+	ap.println("IfStatement(")
+	ap.indent()
+	ap.print("condition=")
+	ap.suppressPadding = true
+	i.Condition.Accept(ap)
+	ap.print("then=")
+	ap.suppressPadding = true
+	i.Consequent.Accept(ap)
+	if i.Alternate != nil {
+		ap.print("else=")
+		ap.suppressPadding = true
+		i.Alternate.Accept(ap)
+	}
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) VisitNullStmt() {
 	ap.println("NullStatement()")
 }
@@ -112,6 +130,22 @@ func (ap *AstPrinter) VisitBinary(binary *BinaryExpression) {
 	ap.print("right=")
 	ap.suppressPadding = true
 	binary.Right.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitConditional(cond *Conditional) {
+	ap.println("Conditional(")
+	ap.indent()
+	ap.print("condition=")
+	ap.suppressPadding = true
+	cond.Condition.Accept(ap)
+	ap.print("then=")
+	ap.suppressPadding = true
+	cond.Consequent.Accept(ap)
+	ap.print("else=")
+	ap.suppressPadding = true
+	cond.Alternate.Accept(ap)
 	ap.dedent()
 	ap.println(")")
 }
