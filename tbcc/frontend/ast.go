@@ -9,6 +9,8 @@ const (
 	AstReturn
 	AstExprStmt
 	AstIfStmt
+	AstGotoStmt
+	AstLabelStmt
 	AstNullStmt
 	AstInteger
 	AstVariable
@@ -30,6 +32,8 @@ type AstVisitor interface {
 	VisitReturn(r *ReturnStmt)
 	VisitExprStmt(e *ExpressionStmt)
 	VisitIfStmt(i *IfStmt)
+	VisitGotoStmt(g *GotoStmt)
+	VisitLabelStmt(l *LabelStmt)
 	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
@@ -120,6 +124,30 @@ func (i *IfStmt) GetType() AstType {
 
 func (i *IfStmt) Accept(visitor AstVisitor) {
 	visitor.VisitIfStmt(i)
+}
+
+type GotoStmt struct {
+	Target string
+}
+
+func (g *GotoStmt) GetType() AstType {
+	return AstGotoStmt
+}
+
+func (g *GotoStmt) Accept(visitor AstVisitor) {
+	visitor.VisitGotoStmt(g)
+}
+
+type LabelStmt struct {
+	Name string
+}
+
+func (l *LabelStmt) GetType() AstType {
+	return AstLabelStmt
+}
+
+func (l *LabelStmt) Accept(visitor AstVisitor) {
+	visitor.VisitLabelStmt(l)
 }
 
 type NullStmt struct{}

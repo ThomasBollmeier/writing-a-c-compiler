@@ -45,7 +45,9 @@ func TestParser_ParseBodyItems(t *testing.T) {
 int main(void) {
 	int answer = 42;
 	40 + 2;
-	int a = b = c = 7 * 6;
+	int a;
+	int b;
+	int c = b = a = 7 * 6;
 	return answer;
 }`
 	runParserWithCode(t, code, false)
@@ -171,14 +173,14 @@ func TestParser_ParseConditional(t *testing.T) {
 	code := `int main(void) {
     	int a = 2;
     	int b = 1;
-    	a > b ? a = 1 : a = 0;
+    	a > b ? a = 1 : a;
     	return a;
 	}`
 
 	runParserWithCode(t, code, false)
 }
 
-func TestParserNestedTernary(t *testing.T) {
+func TestParser_ParseNestedTernary(t *testing.T) {
 	code := `int main(void) {
  	   	int a = 1;
 		int b = 2;
@@ -190,6 +192,48 @@ func TestParserNestedTernary(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseGoto(t *testing.T) {
+	code := `int main(void) {
+ 	   	int a = 42;
+		goto end;
+
+		a = 23;
+		
+	end:
+		return a;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseLabelMultiple(t *testing.T) {
+	code := `int main(void) {
+ 	   	int a = 42;
+		goto end;
+	end:
+		a = 23;
+		
+	end:
+		return a;
+	}`
+
+	runParserWithCode(t, code, true)
+}
+
+func TestParser_ParseLabelAtDecl(t *testing.T) {
+	code := `int main(void) {
+ 	forbidden_before_decl:
+ 	   	int a = 42;
+		goto end;
+		a = 23;
+		
+	end:
+		return a;
+	}`
+
+	runParserWithCode(t, code, true)
+}
+
 func TestParser_ParseProgramFail(t *testing.T) {
 	code := `
 int main(void) {
@@ -197,33 +241,6 @@ int main(void) {
 }
 foo`
 	runParserWithCode(t, code, true)
-}
-
-func runParserWithCode(t *testing.T, code string, expectError bool) {
-	tokens, err := Tokenize(code)
-	if err != nil {
-		t.Errorf("Tokenize() error = %v", err)
-	}
-	parser := NewParser(tokens)
-
-	program, err := parser.ParseProgram()
-
-	if !expectError {
-		if err != nil {
-			t.Errorf("ParseProgram() error = %v", err)
-		}
-
-		if program.GetType() != AstProgram {
-			t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
-		}
-
-		program.Accept(NewAstPrinter(4))
-
-	} else {
-		if err == nil {
-			t.Errorf("ParseProgram() should have returned an error")
-		}
-	}
 }
 
 func TestParser_consume(t *testing.T) {
@@ -248,5 +265,35 @@ func TestParser_consume(t *testing.T) {
 	token, err := p.consume()
 	if err == nil {
 		t.Errorf("Parser.consume() = %v, want error", token)
+	}
+}
+
+func runParserWithCode(t *testing.T, code string, expectError bool) {
+	tokens, err := Tokenize(code)
+	if err != nil {
+		t.Errorf("Tokenize() error = %v", err)
+	}
+	parser := NewParser(tokens)
+
+	program, err := parser.ParseProgram()
+	if err == nil {
+		program, err = AnalyzeSemantics(program, NewNameCreator())
+	}
+
+	if !expectError {
+		if err != nil {
+			t.Errorf("ParseProgram() error = %v", err)
+		}
+
+		if program.GetType() != AstProgram {
+			t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
+		}
+
+		program.Accept(NewAstPrinter(4))
+
+	} else {
+		if err == nil {
+			t.Errorf("ParseProgram() should have returned an error")
+		}
 	}
 }

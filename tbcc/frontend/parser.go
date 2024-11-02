@@ -158,9 +158,42 @@ func (p *Parser) parseStatement() (Statement, error) {
 	case TokTypeSemicolon:
 		_, _ = p.consume()
 		return &NullStmt{}, nil
+	case TokTypeGoto:
+		return p.parseGotoStmt()
+	case TokTypeIdentifier:
+		nextTokens := p.peekN(2)
+		if len(nextTokens) < 2 {
+			return nil, errors.New("expected a colon or semicolon")
+		}
+		nextNext := nextTokens[1]
+		switch nextNext.tokenType {
+		case TokTypeColon:
+			name := token.lexeme
+			_, _ = p.consume()
+			_, _ = p.consume()
+			return &LabelStmt{Name: name}, nil
+		default:
+			return p.parseExprStmt()
+		}
 	default:
 		return p.parseExprStmt()
 	}
+}
+
+func (p *Parser) parseGotoStmt() (*GotoStmt, error) {
+	_, err := p.consume(TokTypeGoto)
+	if err != nil {
+		return nil, err
+	}
+	target, err := p.consume(TokTypeIdentifier)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeSemicolon)
+	if err != nil {
+		return nil, err
+	}
+	return &GotoStmt{target.lexeme}, nil
 }
 
 func (p *Parser) parseIfStmt() (*IfStmt, error) {

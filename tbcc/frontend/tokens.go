@@ -51,6 +51,7 @@ const (
 	TokTypeElse
 	TokTypeQuestionMark
 	TokTypeColon
+	TokTypeGoto
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -104,6 +105,7 @@ var strToKeyword = map[string]TokenType{
 	"return": TokTypeReturn,
 	"if":     TokTypeIf,
 	"else":   TokTypeElse,
+	"goto":   TokTypeGoto,
 }
 
 type Associativity int

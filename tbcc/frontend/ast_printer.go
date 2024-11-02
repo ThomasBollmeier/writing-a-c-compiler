@@ -84,6 +84,22 @@ func (ap *AstPrinter) VisitIfStmt(i *IfStmt) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitGotoStmt(g *GotoStmt) {
+	ap.println("GotoStatement(")
+	ap.indent()
+	ap.println("target=" + g.Target)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitLabelStmt(l *LabelStmt) {
+	ap.println("LabelStatement(")
+	ap.indent()
+	ap.println("name=" + l.Name)
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) VisitNullStmt() {
 	ap.println("NullStatement()")
 }

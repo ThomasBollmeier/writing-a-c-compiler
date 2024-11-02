@@ -30,7 +30,7 @@ func (n *nameCreator) LabelName(prefix string) string {
 	if !ok {
 		current = 0
 	}
-	ret := fmt.Sprintf("%s%d", prefix, current)
+	ret := fmt.Sprintf("%s.%d", prefix, current)
 	current++
 	n.labelCounters[prefix] = current
 	return ret

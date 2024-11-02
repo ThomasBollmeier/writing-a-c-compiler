@@ -59,6 +59,12 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 		_, ret = t.translateExpr(exprStmt.Expression)
 	case frontend.AstIfStmt:
 		ret = t.translateIfStmt(stmt.(*frontend.IfStmt))
+	case frontend.AstGotoStmt:
+		gotoStmt := stmt.(*frontend.GotoStmt)
+		ret = []Instruction{&Jump{gotoStmt.Target}}
+	case frontend.AstLabelStmt:
+		labelStmt := stmt.(*frontend.LabelStmt)
+		ret = []Instruction{&Label{labelStmt.Name}}
 	case frontend.AstNullStmt:
 	default:
 		panic("unsupported statement type")
