@@ -9,6 +9,7 @@ const (
 	AstReturn
 	AstExprStmt
 	AstIfStmt
+	AstBlockStmt
 	AstGotoStmt
 	AstLabelStmt
 	AstNullStmt
@@ -32,6 +33,7 @@ type AstVisitor interface {
 	VisitReturn(r *ReturnStmt)
 	VisitExprStmt(e *ExpressionStmt)
 	VisitIfStmt(i *IfStmt)
+	VisitBlockStmt(b *BlockStmt)
 	VisitGotoStmt(g *GotoStmt)
 	VisitLabelStmt(l *LabelStmt)
 	VisitNullStmt()
@@ -56,7 +58,7 @@ func (p *Program) Accept(visitor AstVisitor) {
 
 type Function struct {
 	Name string
-	Body []BodyItem
+	Body BlockStmt
 }
 
 func (f *Function) GetType() AstType {
@@ -124,6 +126,18 @@ func (i *IfStmt) GetType() AstType {
 
 func (i *IfStmt) Accept(visitor AstVisitor) {
 	visitor.VisitIfStmt(i)
+}
+
+type BlockStmt struct {
+	Items []BodyItem
+}
+
+func (b *BlockStmt) GetType() AstType {
+	return AstBlockStmt
+}
+
+func (b *BlockStmt) Accept(visitor AstVisitor) {
+	visitor.VisitBlockStmt(b)
 }
 
 type GotoStmt struct {

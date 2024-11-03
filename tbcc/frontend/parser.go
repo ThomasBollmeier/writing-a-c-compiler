@@ -53,13 +53,24 @@ func (p *Parser) parseFunction() (*Function, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(TokTypeLeftBrace)
+
+	body, err := p.parseBlockStmt()
 	if err != nil {
 		return nil, err
 	}
 
-	var body []BodyItem
-	var bodyItem BodyItem
+	return &Function{name, *body}, nil
+}
+
+func (p *Parser) parseBlockStmt() (*BlockStmt, error) {
+	_, err := p.consume(TokTypeLeftBrace)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []BodyItem
+	var item BodyItem
+	var token *Token
 
 	for {
 		token, err = p.peek()
@@ -69,11 +80,11 @@ func (p *Parser) parseFunction() (*Function, error) {
 		if token.tokenType == TokTypeRightBrace {
 			break
 		}
-		bodyItem, err = p.parseBodyItem()
+		item, err = p.parseBodyItem()
 		if err != nil {
 			return nil, err
 		}
-		body = append(body, bodyItem)
+		items = append(items, item)
 	}
 
 	_, err = p.consume(TokTypeRightBrace)
@@ -81,7 +92,7 @@ func (p *Parser) parseFunction() (*Function, error) {
 		return nil, err
 	}
 
-	return &Function{name, body}, nil
+	return &BlockStmt{items}, nil
 }
 
 func (p *Parser) parseBodyItem() (BodyItem, error) {
@@ -155,6 +166,8 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return p.parseReturnStmt()
 	case TokTypeIf:
 		return p.parseIfStmt()
+	case TokTypeLeftBrace:
+		return p.parseBlockStmt()
 	case TokTypeSemicolon:
 		_, _ = p.consume()
 		return &NullStmt{}, nil

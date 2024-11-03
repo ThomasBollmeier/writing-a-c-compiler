@@ -17,16 +17,20 @@ func (t *Translator) Translate(program *frontend.Program) *Program {
 }
 
 func (t *Translator) translateFunction(f *frontend.Function) Function {
+
+	bodyInstructions := t.translateBlock(&f.Body)
+	bodyInstructions = append(bodyInstructions, &Return{&IntConstant{0}})
+
 	return Function{
 		f.Name,
-		t.translateBody(f.Body),
+		bodyInstructions,
 	}
 }
 
-func (t *Translator) translateBody(body []frontend.BodyItem) []Instruction {
+func (t *Translator) translateBlock(b *frontend.BlockStmt) []Instruction {
 	var ret []Instruction
 
-	for _, item := range body {
+	for _, item := range b.Items {
 		switch item.GetType() {
 		case frontend.AstVarDecl:
 			varDecl := item.(*frontend.VarDecl)
@@ -39,8 +43,6 @@ func (t *Translator) translateBody(body []frontend.BodyItem) []Instruction {
 			ret = append(ret, t.translateStatement(item)...)
 		}
 	}
-
-	ret = append(ret, &Return{&IntConstant{0}})
 
 	return ret
 }
@@ -59,6 +61,8 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 		_, ret = t.translateExpr(exprStmt.Expression)
 	case frontend.AstIfStmt:
 		ret = t.translateIfStmt(stmt.(*frontend.IfStmt))
+	case frontend.AstBlockStmt:
+		ret = t.translateBlock(stmt.(*frontend.BlockStmt))
 	case frontend.AstGotoStmt:
 		gotoStmt := stmt.(*frontend.GotoStmt)
 		ret = []Instruction{&Jump{gotoStmt.Target}}

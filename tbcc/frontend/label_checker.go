@@ -37,9 +37,26 @@ func (lc *labelChecker) VisitProgram(p *Program) {
 }
 
 func (lc *labelChecker) VisitFunction(f *Function) {
+	f.Body.Accept(lc)
+}
+
+func (lc *labelChecker) VisitVarDecl(*VarDecl) {}
+
+func (lc *labelChecker) VisitReturn(*ReturnStmt) {}
+
+func (lc *labelChecker) VisitExprStmt(*ExpressionStmt) {}
+
+func (lc *labelChecker) VisitIfStmt(i *IfStmt) {
+	i.Consequent.Accept(lc)
+	if i.Alternate != nil {
+		i.Alternate.Accept(lc)
+	}
+}
+
+func (lc *labelChecker) VisitBlockStmt(b *BlockStmt) {
 	var labelName string
 
-	for _, item := range f.Body {
+	for _, item := range b.Items {
 		item.Accept(lc)
 		if item.GetType() == AstLabelStmt {
 			labelName = item.(*LabelStmt).Name
@@ -54,19 +71,6 @@ func (lc *labelChecker) VisitFunction(f *Function) {
 
 	if labelName != "" {
 		lc.labelStmts[labelName] = errors.New("label " + labelName + " is not before any statement")
-	}
-}
-
-func (lc *labelChecker) VisitVarDecl(*VarDecl) {}
-
-func (lc *labelChecker) VisitReturn(*ReturnStmt) {}
-
-func (lc *labelChecker) VisitExprStmt(*ExpressionStmt) {}
-
-func (lc *labelChecker) VisitIfStmt(i *IfStmt) {
-	i.Consequent.Accept(lc)
-	if i.Alternate != nil {
-		i.Alternate.Accept(lc)
 	}
 }
 

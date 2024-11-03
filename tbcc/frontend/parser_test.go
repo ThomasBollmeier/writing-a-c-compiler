@@ -169,6 +169,20 @@ func TestParser_ParseIfElseStatement(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseBlock(t *testing.T) {
+	code := `int main(void) {
+    	int a = 42;
+		{	
+			int b = a + 1;
+			int a = 41;
+			return b;
+		}
+    	return a;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseConditional(t *testing.T) {
 	code := `int main(void) {
     	int a = 2;

@@ -24,13 +24,9 @@ func (ap *AstPrinter) VisitFunction(f *Function) {
 	ap.println("Function(")
 	ap.indent()
 	ap.println("name=\"" + f.Name + "\"")
-	ap.println("body=(")
-	ap.indent()
-	for _, item := range f.Body {
-		item.Accept(ap)
-	}
-	ap.dedent()
-	ap.println(")")
+	ap.print("body=")
+	ap.suppressPadding = true
+	f.Body.Accept(ap)
 	ap.dedent()
 	ap.println(")")
 }
@@ -79,6 +75,16 @@ func (ap *AstPrinter) VisitIfStmt(i *IfStmt) {
 		ap.print("else=")
 		ap.suppressPadding = true
 		i.Alternate.Accept(ap)
+	}
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitBlockStmt(b *BlockStmt) {
+	ap.println("BlockStmt(")
+	ap.indent()
+	for _, item := range b.Items {
+		item.Accept(ap)
 	}
 	ap.dedent()
 	ap.println(")")

@@ -12,7 +12,7 @@ type varResolverResult struct {
 
 type variableResolver struct {
 	nameCreator NameCreator
-	varMap      map[string]string
+	env         *environment
 	labelMap    map[string]string
 	result      varResolverResult
 }
@@ -20,7 +20,7 @@ type variableResolver struct {
 func newVariableResolver(nameCreator NameCreator) *variableResolver {
 	return &variableResolver{
 		nameCreator: nameCreator,
-		varMap:      make(map[string]string),
+		env:         newEnvironment(nil),
 		labelMap:    make(map[string]string),
 		result:      varResolverResult{nil, nil},
 	}
@@ -43,25 +43,20 @@ func (vr *variableResolver) VisitProgram(p *Program) {
 }
 
 func (vr *variableResolver) VisitFunction(f *Function) {
-	var newBody []BodyItem
-	for _, item := range f.Body {
-		newItem, err := vr.evalAst(item)
-		if err != nil {
-			return
-		}
-		newBody = append(newBody, newItem)
+	newBody, err := vr.evalAst(&f.Body)
+	if err != nil {
+		return
 	}
-	vr.setResult(&Function{f.Name, newBody}, nil)
+	vr.setResult(&Function{f.Name, *newBody.(*BlockStmt)}, nil)
 }
 
 func (vr *variableResolver) VisitVarDecl(v *VarDecl) {
-	_, ok := vr.varMap[v.Name]
-	if ok {
+	if vr.env.isSet(v.Name) {
 		vr.setResult(nil, errors.New(fmt.Sprintf("variable %s already defined", v.Name)))
 		return
 	}
 	uniqueName := vr.nameCreator.VarName()
-	vr.varMap[v.Name] = uniqueName
+	vr.env.set(v.Name, uniqueName)
 
 	var newInitValue AST
 	var err error
@@ -117,6 +112,24 @@ func (vr *variableResolver) VisitIfStmt(i *IfStmt) {
 	}, nil)
 }
 
+func (vr *variableResolver) VisitBlockStmt(b *BlockStmt) {
+	var newItems []BodyItem
+
+	vr.env = newEnvironment(vr.env)
+
+	for _, item := range b.Items {
+		newItem, err := vr.evalAst(item)
+		if err != nil {
+			return
+		}
+		newItems = append(newItems, newItem)
+	}
+
+	vr.env = vr.env.getParent()
+
+	vr.setResult(&BlockStmt{newItems}, nil)
+}
+
 func (vr *variableResolver) VisitGotoStmt(g *GotoStmt) {
 	uniqueTarget, ok := vr.labelMap[g.Target]
 	if !ok {
@@ -145,9 +158,9 @@ func (vr *variableResolver) VisitInteger(i *IntegerLiteral) {
 }
 
 func (vr *variableResolver) VisitVariable(v *Variable) {
-	uniqueName, ok := vr.varMap[v.Name]
-	if !ok {
-		vr.setResult(nil, errors.New(fmt.Sprintf("variable %s not defined", v.Name)))
+	uniqueName, err := vr.env.lookup(v.Name)
+	if err != nil {
+		vr.setResult(nil, err)
 		return
 	}
 	vr.setResult(&Variable{uniqueName}, nil)
