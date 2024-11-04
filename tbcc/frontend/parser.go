@@ -166,6 +166,23 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return p.parseReturnStmt()
 	case TokTypeIf:
 		return p.parseIfStmt()
+	case TokTypeDo:
+		return p.parseDoWhileStmt()
+	case TokTypeWhile:
+		return p.parseWhileStmt()
+	case TokTypeFor:
+		return p.parseForStmt()
+	case TokTypeBreak, TokTypeContinue:
+		_, _ = p.consume()
+		_, err = p.consume(TokTypeSemicolon)
+		if err != nil {
+			return nil, err
+		}
+		if token.tokenType == TokTypeBreak {
+			return &BreakStmt{}, nil
+		} else {
+			return &ContinueStmt{}, nil
+		}
 	case TokTypeLeftBrace:
 		return p.parseBlockStmt()
 	case TokTypeSemicolon:
@@ -191,6 +208,140 @@ func (p *Parser) parseStatement() (Statement, error) {
 	default:
 		return p.parseExprStmt()
 	}
+}
+
+func (p *Parser) parseForStmt() (*ForStmt, error) {
+	_, err := p.consume(TokTypeFor)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+
+	initStmt, err := p.parseBodyItem()
+	if err != nil {
+		return nil, err
+	}
+	switch initStmt.GetType() {
+	case AstVarDecl, AstExprStmt, AstNullStmt:
+		break
+	default:
+		return nil, errors.New("init statement must be one of: varDecl, exprStmt or nullStmt")
+	}
+
+	var condition Expression = nil
+	token, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+	if token.tokenType != TokTypeSemicolon {
+		condition, err = p.parseExpression(0)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.consume(TokTypeSemicolon)
+	if err != nil {
+		return nil, err
+	}
+
+	var post Expression = nil
+	token, err = p.peek()
+	if err != nil {
+		return nil, err
+	}
+	if token.tokenType != TokTypeRightParen {
+		post, err = p.parseExpression(0)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(TokTypeRightParen)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.parseStatement()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ForStmt{
+		initStmt,
+		condition,
+		post,
+		body,
+		"",
+	}, nil
+}
+
+func (p *Parser) parseWhileStmt() (*WhileStmt, error) {
+	_, err := p.consume(TokTypeWhile)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeRightParen)
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.parseStatement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WhileStmt{
+		condition,
+		body,
+		"",
+	}, nil
+}
+
+func (p *Parser) parseDoWhileStmt() (*DoWhileStmt, error) {
+	_, err := p.consume(TokTypeDo)
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.parseStatement()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeWhile)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeRightParen)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeSemicolon)
+	if err != nil {
+		return nil, err
+	}
+	return &DoWhileStmt{
+		condition,
+		body,
+		"",
+	}, nil
 }
 
 func (p *Parser) parseGotoStmt() (*GotoStmt, error) {

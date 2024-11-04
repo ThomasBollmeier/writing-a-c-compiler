@@ -52,6 +52,11 @@ const (
 	TokTypeQuestionMark
 	TokTypeColon
 	TokTypeGoto
+	TokTypeDo
+	TokTypeWhile
+	TokTypeFor
+	TokTypeBreak
+	TokTypeContinue
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -100,12 +105,17 @@ var tokenTypeToRegexStr = map[TokenType]string{
 }
 
 var strToKeyword = map[string]TokenType{
-	"int":    TokTypeInt,
-	"void":   TokTypeVoid,
-	"return": TokTypeReturn,
-	"if":     TokTypeIf,
-	"else":   TokTypeElse,
-	"goto":   TokTypeGoto,
+	"int":      TokTypeInt,
+	"void":     TokTypeVoid,
+	"return":   TokTypeReturn,
+	"if":       TokTypeIf,
+	"else":     TokTypeElse,
+	"goto":     TokTypeGoto,
+	"do":       TokTypeDo,
+	"while":    TokTypeWhile,
+	"for":      TokTypeFor,
+	"break":    TokTypeBreak,
+	"continue": TokTypeContinue,
 }
 
 type Associativity int

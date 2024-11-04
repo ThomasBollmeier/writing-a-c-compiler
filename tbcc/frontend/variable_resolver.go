@@ -17,6 +17,31 @@ type variableResolver struct {
 	result      varResolverResult
 }
 
+func (vr *variableResolver) VisitDoWhileStmt(d *DoWhileStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (vr *variableResolver) VisitWhileStmt(w *WhileStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (vr *variableResolver) VisitForStmt(f *ForStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (vr *variableResolver) VisitBreakStmt(b *BreakStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (vr *variableResolver) VisitContinueStmt(c *ContinueStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func newVariableResolver(nameCreator NameCreator) *variableResolver {
 	return &variableResolver{
 		nameCreator: nameCreator,

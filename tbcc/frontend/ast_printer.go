@@ -106,6 +106,63 @@ func (ap *AstPrinter) VisitLabelStmt(l *LabelStmt) {
 	ap.println(")")
 }
 
+func (ap *AstPrinter) VisitDoWhileStmt(d *DoWhileStmt) {
+	ap.println("DoWhileStatement(")
+	ap.indent()
+	ap.print("body=")
+	ap.suppressPadding = true
+	d.Body.Accept(ap)
+	ap.print("condition=")
+	ap.suppressPadding = true
+	d.Condition.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitWhileStmt(w *WhileStmt) {
+	ap.println("WhileStatement(")
+	ap.indent()
+	ap.print("condition=")
+	ap.suppressPadding = true
+	w.Condition.Accept(ap)
+	ap.print("body=")
+	ap.suppressPadding = true
+	w.Body.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitForStmt(f *ForStmt) {
+	ap.println("ForStatement(")
+	ap.indent()
+	ap.print("init=")
+	ap.suppressPadding = true
+	f.InitStmt.Accept(ap)
+	if f.Condition != nil {
+		ap.print("condition=")
+		ap.suppressPadding = true
+		f.Condition.Accept(ap)
+	}
+	if f.Post != nil {
+		ap.print("post=")
+		ap.suppressPadding = true
+		f.Post.Accept(ap)
+	}
+	ap.print("body=")
+	ap.suppressPadding = true
+	f.Body.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitBreakStmt(b *BreakStmt) {
+	ap.println("BreakStmt()")
+}
+
+func (ap *AstPrinter) VisitContinueStmt(c *ContinueStmt) {
+	ap.println("ContinueStmt()")
+}
+
 func (ap *AstPrinter) VisitNullStmt() {
 	ap.println("NullStatement()")
 }

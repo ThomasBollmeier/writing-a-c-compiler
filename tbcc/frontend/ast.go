@@ -12,6 +12,11 @@ const (
 	AstBlockStmt
 	AstGotoStmt
 	AstLabelStmt
+	AstDoWhileStmt
+	AstWhileStmt
+	AstForStmt
+	AstBreakStmt
+	AstContinueStmt
 	AstNullStmt
 	AstInteger
 	AstVariable
@@ -36,6 +41,11 @@ type AstVisitor interface {
 	VisitBlockStmt(b *BlockStmt)
 	VisitGotoStmt(g *GotoStmt)
 	VisitLabelStmt(l *LabelStmt)
+	VisitDoWhileStmt(d *DoWhileStmt)
+	VisitWhileStmt(w *WhileStmt)
+	VisitForStmt(f *ForStmt)
+	VisitBreakStmt(b *BreakStmt)
+	VisitContinueStmt(c *ContinueStmt)
 	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
@@ -162,6 +172,74 @@ func (l *LabelStmt) GetType() AstType {
 
 func (l *LabelStmt) Accept(visitor AstVisitor) {
 	visitor.VisitLabelStmt(l)
+}
+
+type DoWhileStmt struct {
+	Condition Expression
+	Body      Statement
+	Label     string
+}
+
+func (d *DoWhileStmt) GetType() AstType {
+	return AstDoWhileStmt
+}
+
+func (d *DoWhileStmt) Accept(visitor AstVisitor) {
+	visitor.VisitDoWhileStmt(d)
+}
+
+type WhileStmt struct {
+	Condition Expression
+	Body      Statement
+	Label     string
+}
+
+func (w *WhileStmt) GetType() AstType {
+	return AstWhileStmt
+}
+
+func (w *WhileStmt) Accept(visitor AstVisitor) {
+	visitor.VisitWhileStmt(w)
+}
+
+type ForStmt struct {
+	InitStmt  Statement
+	Condition Expression
+	Post      Expression
+	Body      Statement
+	Label     string
+}
+
+func (f *ForStmt) GetType() AstType {
+	return AstForStmt
+}
+
+func (f *ForStmt) Accept(visitor AstVisitor) {
+	visitor.VisitForStmt(f)
+}
+
+type BreakStmt struct {
+	Label string
+}
+
+func (b *BreakStmt) GetType() AstType {
+	return AstBreakStmt
+}
+
+func (b *BreakStmt) Accept(visitor AstVisitor) {
+	visitor.VisitBreakStmt(b)
+}
+
+type ContinueStmt struct {
+	Label string
+}
+
+func (c *ContinueStmt) GetType() AstType {
+	return AstContinueStmt
+}
+
+func (c *ContinueStmt) Accept(visitor AstVisitor) {
+	visitor.VisitContinueStmt(c)
 }
 
 type NullStmt struct{}

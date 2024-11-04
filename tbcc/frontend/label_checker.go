@@ -7,6 +7,31 @@ type labelChecker struct {
 	labelStmts map[string]error
 }
 
+func (lc *labelChecker) VisitDoWhileStmt(d *DoWhileStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (lc *labelChecker) VisitWhileStmt(w *WhileStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (lc *labelChecker) VisitForStmt(f *ForStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (lc *labelChecker) VisitBreakStmt(b *BreakStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (lc *labelChecker) VisitContinueStmt(c *ContinueStmt) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func newLabelChecker() *labelChecker {
 	return &labelChecker{}
 }
