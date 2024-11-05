@@ -17,31 +17,6 @@ type variableResolver struct {
 	result      varResolverResult
 }
 
-func (vr *variableResolver) VisitDoWhileStmt(d *DoWhileStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (vr *variableResolver) VisitWhileStmt(w *WhileStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (vr *variableResolver) VisitForStmt(f *ForStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (vr *variableResolver) VisitBreakStmt(b *BreakStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (vr *variableResolver) VisitContinueStmt(c *ContinueStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func newVariableResolver(nameCreator NameCreator) *variableResolver {
 	return &variableResolver{
 		nameCreator: nameCreator,
@@ -138,6 +113,10 @@ func (vr *variableResolver) VisitIfStmt(i *IfStmt) {
 }
 
 func (vr *variableResolver) VisitBlockStmt(b *BlockStmt) {
+	defer func() {
+		vr.env = vr.env.getParent()
+	}()
+
 	var newItems []BodyItem
 
 	vr.env = newEnvironment(vr.env)
@@ -149,8 +128,6 @@ func (vr *variableResolver) VisitBlockStmt(b *BlockStmt) {
 		}
 		newItems = append(newItems, newItem)
 	}
-
-	vr.env = vr.env.getParent()
 
 	vr.setResult(&BlockStmt{newItems}, nil)
 }
@@ -172,6 +149,90 @@ func (vr *variableResolver) VisitLabelStmt(l *LabelStmt) {
 		vr.labelMap[l.Name] = uniqueName
 	}
 	vr.setResult(&LabelStmt{uniqueName}, nil)
+}
+
+func (vr *variableResolver) VisitDoWhileStmt(d *DoWhileStmt) {
+	newCondition, err := vr.evalAst(d.Condition)
+	if err != nil {
+		return
+	}
+	newBody, err := vr.evalAst(d.Body)
+	if err != nil {
+		return
+	}
+	vr.setResult(&DoWhileStmt{
+		Condition: newCondition,
+		Body:      newBody,
+		Label:     d.Label,
+	}, nil)
+}
+
+func (vr *variableResolver) VisitWhileStmt(w *WhileStmt) {
+	newCondition, err := vr.evalAst(w.Condition)
+	if err != nil {
+		return
+	}
+	newBody, err := vr.evalAst(w.Body)
+	if err != nil {
+		return
+	}
+	vr.setResult(&WhileStmt{
+		Condition: newCondition,
+		Body:      newBody,
+		Label:     w.Label,
+	}, nil)
+}
+
+func (vr *variableResolver) VisitForStmt(f *ForStmt) {
+
+	var newCondition Expression
+	var newPost Expression
+
+	vr.env = newEnvironment(vr.env)
+
+	defer func() {
+		vr.env = vr.env.getParent()
+	}()
+
+	newInitStmt, err := vr.evalAst(f.InitStmt)
+	if err != nil {
+		return
+	}
+
+	if f.Condition != nil {
+		newCondition, err = vr.evalAst(f.Condition)
+		if err != nil {
+			return
+		}
+	}
+
+	if f.Post != nil {
+		newPost, err = vr.evalAst(f.Post)
+		if err != nil {
+			return
+		}
+	}
+
+	newBody, err := vr.evalAst(f.Body)
+	if err != nil {
+		return
+	}
+	vr.setResult(&ForStmt{
+		InitStmt:  newInitStmt,
+		Condition: newCondition,
+		Post:      newPost,
+		Body:      newBody,
+		Label:     f.Label,
+	}, nil)
+
+}
+
+func (vr *variableResolver) VisitBreakStmt(b *BreakStmt) {
+	vr.setResult(b, nil)
+}
+
+func (vr *variableResolver) VisitContinueStmt(c *ContinueStmt) {
+	vr.setResult(c, nil)
 }
 
 func (vr *variableResolver) VisitNullStmt() {

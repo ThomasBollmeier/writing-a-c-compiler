@@ -6,6 +6,13 @@ func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, erro
 	if err != nil {
 		return nil, err
 	}
+
+	labeler := newLoopLabeler(nameCreator)
+	err = labeler.addLabels(program)
+	if err != nil {
+		return nil, err
+	}
+
 	resolver := newVariableResolver(nameCreator)
 	return resolver.resolve(program)
 }

@@ -109,6 +109,9 @@ func (ap *AstPrinter) VisitLabelStmt(l *LabelStmt) {
 func (ap *AstPrinter) VisitDoWhileStmt(d *DoWhileStmt) {
 	ap.println("DoWhileStatement(")
 	ap.indent()
+	if d.Label != "" {
+		ap.println(fmt.Sprintf("label=%s", d.Label))
+	}
 	ap.print("body=")
 	ap.suppressPadding = true
 	d.Body.Accept(ap)
@@ -122,6 +125,9 @@ func (ap *AstPrinter) VisitDoWhileStmt(d *DoWhileStmt) {
 func (ap *AstPrinter) VisitWhileStmt(w *WhileStmt) {
 	ap.println("WhileStatement(")
 	ap.indent()
+	if w.Label != "" {
+		ap.println(fmt.Sprintf("label=%s", w.Label))
+	}
 	ap.print("condition=")
 	ap.suppressPadding = true
 	w.Condition.Accept(ap)
@@ -135,6 +141,9 @@ func (ap *AstPrinter) VisitWhileStmt(w *WhileStmt) {
 func (ap *AstPrinter) VisitForStmt(f *ForStmt) {
 	ap.println("ForStatement(")
 	ap.indent()
+	if f.Label != "" {
+		ap.println(fmt.Sprintf("label=%s", f.Label))
+	}
 	ap.print("init=")
 	ap.suppressPadding = true
 	f.InitStmt.Accept(ap)
@@ -156,11 +165,11 @@ func (ap *AstPrinter) VisitForStmt(f *ForStmt) {
 }
 
 func (ap *AstPrinter) VisitBreakStmt(b *BreakStmt) {
-	ap.println("BreakStmt()")
+	ap.println(fmt.Sprintf("BreakStmt(%s)", b.Label))
 }
 
 func (ap *AstPrinter) VisitContinueStmt(c *ContinueStmt) {
-	ap.println("ContinueStmt()")
+	ap.println(fmt.Sprintf("ContinueStmt(%s)", c.Label))
 }
 
 func (ap *AstPrinter) VisitNullStmt() {

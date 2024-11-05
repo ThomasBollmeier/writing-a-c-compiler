@@ -223,6 +223,7 @@ func TestParser_ParseGoto(t *testing.T) {
 func TestParser_ParseForStmt(t *testing.T) {
 	code := `int main(void) {
 		int sum = 0;
+		int i = 42;
 		int counter;
 		for (int i = 0; i <= 10; i = i + 1) {
 			counter = i;
@@ -232,6 +233,44 @@ func TestParser_ParseForStmt(t *testing.T) {
 		}
 	
 		return sum == 5 && counter == 10;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseForLoopWithoutCond(t *testing.T) {
+	code := `int main(void) {
+		int sum = 0;
+		int i = 0;
+		int counter;
+		for (;;) {
+			i++;
+			sum = sum + i;
+			if (i == 5)
+				break;
+		}
+	
+		return sum == 15;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseMultipleCont(t *testing.T) {
+	code := `int main(void) {
+		int x = 10;
+		int y = 0;
+		int z = 0;
+		do {
+			z = z + 1;
+			if (x <= 0)
+				continue;
+			x = x - 1;
+			if (y >= 10)
+				continue;
+			y = y + 1;
+		} while (z != 50);
+		return z == 50 && x == 0 && y == 10;
 	}`
 
 	runParserWithCode(t, code, false)
@@ -304,8 +343,8 @@ func runParserWithCode(t *testing.T, code string, expectError bool) {
 	if err != nil {
 		t.Errorf("Tokenize() error = %v", err)
 	}
-	parser := NewParser(tokens)
 
+	parser := NewParser(tokens)
 	program, err := parser.ParseProgram()
 	if err == nil {
 		program, err = AnalyzeSemantics(program, NewNameCreator())

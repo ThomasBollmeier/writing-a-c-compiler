@@ -7,31 +7,6 @@ type labelChecker struct {
 	labelStmts map[string]error
 }
 
-func (lc *labelChecker) VisitDoWhileStmt(d *DoWhileStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (lc *labelChecker) VisitWhileStmt(w *WhileStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (lc *labelChecker) VisitForStmt(f *ForStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (lc *labelChecker) VisitBreakStmt(b *BreakStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (lc *labelChecker) VisitContinueStmt(c *ContinueStmt) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func newLabelChecker() *labelChecker {
 	return &labelChecker{}
 }
@@ -114,6 +89,22 @@ func (lc *labelChecker) VisitLabelStmt(l *LabelStmt) {
 		lc.labelStmts[l.Name] = errors.New("label " + l.Name + " already exists")
 	}
 }
+
+func (lc *labelChecker) VisitDoWhileStmt(d *DoWhileStmt) {
+	d.Body.Accept(lc)
+}
+
+func (lc *labelChecker) VisitWhileStmt(w *WhileStmt) {
+	w.Body.Accept(lc)
+}
+
+func (lc *labelChecker) VisitForStmt(f *ForStmt) {
+	f.Body.Accept(lc)
+}
+
+func (lc *labelChecker) VisitBreakStmt(*BreakStmt) {}
+
+func (lc *labelChecker) VisitContinueStmt(*ContinueStmt) {}
 
 func (lc *labelChecker) VisitNullStmt() {}
 
