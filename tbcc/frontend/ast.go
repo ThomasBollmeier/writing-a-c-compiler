@@ -203,7 +203,7 @@ func (w *WhileStmt) Accept(visitor AstVisitor) {
 }
 
 type ForStmt struct {
-	InitStmt  Statement
+	InitStmt  BodyItem
 	Condition Expression
 	Post      Expression
 	Body      Statement

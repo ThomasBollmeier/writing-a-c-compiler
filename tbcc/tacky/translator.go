@@ -1,6 +1,7 @@
 package tacky
 
 import (
+	"fmt"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
 )
 
@@ -31,20 +32,26 @@ func (t *Translator) translateBlock(b *frontend.BlockStmt) []Instruction {
 	var ret []Instruction
 
 	for _, item := range b.Items {
-		switch item.GetType() {
-		case frontend.AstVarDecl:
-			varDecl := item.(*frontend.VarDecl)
-			if varDecl.InitValue != nil {
-				val, instructions := t.translateExpr(varDecl.InitValue)
-				ret = append(ret, instructions...)
-				ret = append(ret, &Copy{val, &Var{varDecl.Name}})
-			}
-		default:
-			ret = append(ret, t.translateStatement(item)...)
-		}
+		ret = append(ret, t.translateBodyItem(item)...)
 	}
 
 	return ret
+}
+
+func (t *Translator) translateBodyItem(item frontend.BodyItem) []Instruction {
+	switch item.GetType() {
+	case frontend.AstVarDecl:
+		var ret []Instruction
+		varDecl := item.(*frontend.VarDecl)
+		if varDecl.InitValue != nil {
+			val, instructions := t.translateExpr(varDecl.InitValue)
+			ret = append(ret, instructions...)
+			ret = append(ret, &Copy{val, &Var{varDecl.Name}})
+		}
+		return ret
+	default:
+		return t.translateStatement(item)
+	}
 }
 
 func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
@@ -69,12 +76,113 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 	case frontend.AstLabelStmt:
 		labelStmt := stmt.(*frontend.LabelStmt)
 		ret = []Instruction{&Label{labelStmt.Name}}
+	case frontend.AstDoWhileStmt:
+		ret = t.translateDoWhileStmt(stmt.(*frontend.DoWhileStmt))
+	case frontend.AstWhileStmt:
+		ret = t.translateWhileStmt(stmt.(*frontend.WhileStmt))
+	case frontend.AstForStmt:
+		ret = t.translateForStmt(stmt.(*frontend.ForStmt))
+	case frontend.AstContinueStmt:
+		continueStmt := stmt.(*frontend.ContinueStmt)
+		ret = []Instruction{&Jump{t.loopLabelContinue(continueStmt.Label)}}
+	case frontend.AstBreakStmt:
+		breakStmt := stmt.(*frontend.BreakStmt)
+		ret = []Instruction{&Jump{t.loopLabelBreak(breakStmt.Label)}}
 	case frontend.AstNullStmt:
 	default:
 		panic("unsupported statement type")
 	}
 
 	return ret
+}
+
+func (t *Translator) translateForStmt(stmt *frontend.ForStmt) []Instruction {
+
+	var ret []Instruction
+	startLabel := t.loopLabelStart(stmt.Label)
+	continueLabel := t.loopLabelContinue(stmt.Label)
+	breakLabel := t.loopLabelBreak(stmt.Label)
+
+	ret = append(ret, t.translateBodyItem(stmt.InitStmt)...)
+	ret = append(ret, &Label{startLabel})
+
+	if stmt.Condition != nil {
+		condVal, condInstructions := t.translateExpr(stmt.Condition)
+		condResult := &Var{t.createVarName()}
+		ret = append(ret, condInstructions...)
+		ret = append(ret,
+			&Copy{condVal, condResult},
+			&JumpIfZero{condResult, breakLabel},
+		)
+	}
+	ret = append(ret, t.translateStatement(stmt.Body)...)
+	ret = append(ret, &Label{continueLabel})
+
+	if stmt.Post != nil {
+		_, postInstructions := t.translateExpr(stmt.Post)
+		ret = append(ret, postInstructions...)
+	}
+
+	ret = append(ret,
+		&Jump{startLabel},
+		&Label{breakLabel},
+	)
+
+	return ret
+}
+
+func (t *Translator) translateWhileStmt(stmt *frontend.WhileStmt) []Instruction {
+	continueLabel := t.loopLabelContinue(stmt.Label)
+	breakLabel := t.loopLabelBreak(stmt.Label)
+
+	ret := []Instruction{&Label{continueLabel}}
+	condVal, condInstructions := t.translateExpr(stmt.Condition)
+	condResult := &Var{t.createVarName()}
+	ret = append(ret, condInstructions...)
+	ret = append(ret,
+		&Copy{condVal, condResult},
+		&JumpIfZero{condResult, breakLabel},
+	)
+	ret = append(ret, t.translateStatement(stmt.Body)...)
+	ret = append(ret,
+		&Jump{continueLabel},
+		&Label{breakLabel},
+	)
+
+	return ret
+}
+
+func (t *Translator) translateDoWhileStmt(stmt *frontend.DoWhileStmt) []Instruction {
+	startLabel := t.loopLabelStart(stmt.Label)
+	ret := []Instruction{&Label{startLabel}}
+	ret = append(ret, t.translateStatement(stmt.Body)...)
+	ret = append(ret, &Label{t.loopLabelContinue(stmt.Label)})
+	condVal, condInstructions := t.translateExpr(stmt.Condition)
+	condResult := &Var{t.createVarName()}
+	ret = append(ret, condInstructions...)
+	ret = append(ret,
+		&Copy{condVal, condResult},
+		&JumpIfNotZero{condResult, startLabel},
+		&Label{t.loopLabelBreak(stmt.Label)},
+	)
+
+	return ret
+}
+
+func (t *Translator) loopLabelStart(loopLabel string) string {
+	return fmt.Sprintf("%s.start", loopLabel)
+}
+
+func (t *Translator) loopLabelEnd(loopLabel string) string {
+	return fmt.Sprintf("%s.end", loopLabel)
+}
+
+func (t *Translator) loopLabelBreak(loopLabel string) string {
+	return fmt.Sprintf("%s.break", loopLabel)
+}
+
+func (t *Translator) loopLabelContinue(loopLabel string) string {
+	return fmt.Sprintf("%s.continue", loopLabel)
 }
 
 func (t *Translator) translateIfStmt(ifStmt *frontend.IfStmt) []Instruction {
