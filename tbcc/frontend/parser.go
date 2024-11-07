@@ -172,6 +172,8 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return p.parseWhileStmt()
 	case TokTypeFor:
 		return p.parseForStmt()
+	case TokTypeSwitch:
+		return p.parseSwitchStmt()
 	case TokTypeBreak, TokTypeContinue:
 		_, _ = p.consume()
 		_, err = p.consume(TokTypeSemicolon)
@@ -208,6 +210,89 @@ func (p *Parser) parseStatement() (Statement, error) {
 	default:
 		return p.parseExprStmt()
 	}
+}
+
+func (p *Parser) parseSwitchStmt() (*SwitchStmt, error) {
+	_, err := p.consume(TokTypeSwitch)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+	expr, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeRightParen)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(TokTypeLeftBrace)
+	if err != nil {
+		return nil, err
+	}
+
+	var blocks []caseBlock
+	var value Expression
+	var items []BodyItem
+	var item BodyItem
+	var token *Token
+
+blocksLoop:
+	for {
+		token, err = p.peek()
+		if err != nil {
+			return nil, err
+		}
+		switch token.tokenType {
+		case TokTypeCase, TokTypeDefault:
+			_, _ = p.consume()
+			if token.tokenType == TokTypeCase {
+				value, err = p.parseExpression(0)
+				if err != nil {
+					return nil, err
+				}
+				if value.GetType() != AstInteger {
+					return nil, errors.New("expected integer as case value")
+				}
+			} else {
+				value = nil
+			}
+			_, err = p.consume(TokTypeColon)
+			if err != nil {
+				return nil, err
+			}
+			items = nil
+		blockLoop:
+			for {
+				token, err = p.peek()
+				if err != nil {
+					return nil, err
+				}
+				switch token.tokenType {
+				case TokTypeCase, TokTypeDefault, TokTypeRightBrace:
+					break blockLoop
+				default:
+				}
+				item, err = p.parseBodyItem()
+				if err != nil {
+					return nil, err
+				}
+				items = append(items, item)
+			}
+			blocks = append(blocks, caseBlock{value, items})
+		case TokTypeRightBrace:
+			_, _ = p.consume()
+			break blocksLoop
+		default:
+			return nil, errors.New("unexpected token at switch statement: " + token.lexeme)
+		}
+
+	}
+
+	return &SwitchStmt{expr, blocks}, nil
 }
 
 func (p *Parser) parseForStmt() (*ForStmt, error) {

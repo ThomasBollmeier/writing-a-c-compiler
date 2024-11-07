@@ -172,6 +172,40 @@ func (ap *AstPrinter) VisitContinueStmt(c *ContinueStmt) {
 	ap.println(fmt.Sprintf("ContinueStmt(%s)", c.Label))
 }
 
+func (ap *AstPrinter) VisitSwitchStmt(s *SwitchStmt) {
+	ap.println("SwitchStmt(")
+	ap.indent()
+	ap.print("expression=")
+	ap.suppressPadding = true
+	s.Expr.Accept(ap)
+	ap.println("caseBlocks=[")
+	ap.indent()
+	for _, block := range s.CaseBlocks {
+		ap.println("Case(")
+		ap.indent()
+		if block.Value != nil {
+			ap.print("select=")
+			ap.suppressPadding = true
+			block.Value.Accept(ap)
+		} else {
+			ap.println("select=default")
+		}
+		ap.println("statements=[")
+		ap.indent()
+		for _, stmt := range block.Body {
+			stmt.Accept(ap)
+		}
+		ap.dedent()
+		ap.println("]")
+		ap.dedent()
+		ap.println(")")
+	}
+	ap.dedent()
+	ap.println("]")
+	ap.dedent()
+	ap.println(")")
+}
+
 func (ap *AstPrinter) VisitNullStmt() {
 	ap.println("NullStatement()")
 }

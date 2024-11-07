@@ -106,6 +106,8 @@ func (lc *labelChecker) VisitBreakStmt(*BreakStmt) {}
 
 func (lc *labelChecker) VisitContinueStmt(*ContinueStmt) {}
 
+func (lc *labelChecker) VisitSwitchStmt(*SwitchStmt) {}
+
 func (lc *labelChecker) VisitNullStmt() {}
 
 func (lc *labelChecker) VisitInteger(*IntegerLiteral) {}

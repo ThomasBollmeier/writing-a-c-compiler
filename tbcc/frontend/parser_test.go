@@ -276,6 +276,28 @@ func TestParser_ParseMultipleCont(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseSwitchStatement(t *testing.T) {
+	code := `int main(void) {
+		int n = 42;
+		int ret = 0;
+
+		switch(n) {
+		case 23:
+			ret = 0;
+			break;
+		case 42:
+			ret = 1;
+			break;
+		default:
+			ret = -1;
+		}
+
+		return ret;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseLabelMultiple(t *testing.T) {
 	code := `int main(void) {
  	   	int a = 42;

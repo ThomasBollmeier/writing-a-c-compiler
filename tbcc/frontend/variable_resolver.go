@@ -235,6 +235,32 @@ func (vr *variableResolver) VisitContinueStmt(c *ContinueStmt) {
 	vr.setResult(c, nil)
 }
 
+func (vr *variableResolver) VisitSwitchStmt(s *SwitchStmt) {
+	newExpr, err := vr.evalAst(s.Expr)
+	if err != nil {
+		return
+	}
+
+	var newCaseBlocks []caseBlock
+
+	for _, block := range s.CaseBlocks {
+		var newStatements []BodyItem
+		var newStmt BodyItem
+
+		for _, stmt := range block.Body {
+			newStmt, err = vr.evalAst(stmt)
+			if err != nil {
+				return
+			}
+			newStatements = append(newStatements, newStmt)
+		}
+
+		newCaseBlocks = append(newCaseBlocks, caseBlock{block.Value, newStatements})
+	}
+
+	vr.setResult(&SwitchStmt{newExpr, newCaseBlocks}, nil)
+}
+
 func (vr *variableResolver) VisitNullStmt() {
 	vr.setResult(&NullStmt{}, nil)
 }

@@ -57,6 +57,9 @@ const (
 	TokTypeFor
 	TokTypeBreak
 	TokTypeContinue
+	TokTypeSwitch
+	TokTypeCase
+	TokTypeDefault
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -116,6 +119,9 @@ var strToKeyword = map[string]TokenType{
 	"for":      TokTypeFor,
 	"break":    TokTypeBreak,
 	"continue": TokTypeContinue,
+	"switch":   TokTypeSwitch,
+	"case":     TokTypeCase,
+	"default":  TokTypeDefault,
 }
 
 type Associativity int

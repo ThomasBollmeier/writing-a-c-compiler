@@ -17,6 +17,7 @@ const (
 	AstForStmt
 	AstBreakStmt
 	AstContinueStmt
+	AstSwitchStmt
 	AstNullStmt
 	AstInteger
 	AstVariable
@@ -46,6 +47,7 @@ type AstVisitor interface {
 	VisitForStmt(f *ForStmt)
 	VisitBreakStmt(b *BreakStmt)
 	VisitContinueStmt(c *ContinueStmt)
+	VisitSwitchStmt(s *SwitchStmt)
 	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
@@ -240,6 +242,24 @@ func (c *ContinueStmt) GetType() AstType {
 
 func (c *ContinueStmt) Accept(visitor AstVisitor) {
 	visitor.VisitContinueStmt(c)
+}
+
+type SwitchStmt struct {
+	Expr       Expression
+	CaseBlocks []caseBlock
+}
+
+type caseBlock struct {
+	Value Expression
+	Body  []BodyItem
+}
+
+func (s *SwitchStmt) GetType() AstType {
+	return AstSwitchStmt
+}
+
+func (s *SwitchStmt) Accept(visitor AstVisitor) {
+	visitor.VisitSwitchStmt(s)
 }
 
 type NullStmt struct{}

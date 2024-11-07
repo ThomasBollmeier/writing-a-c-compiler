@@ -123,6 +123,8 @@ func (ll *loopLabeler) VisitContinueStmt(c *ContinueStmt) {
 	c.Label = label
 }
 
+func (ll *loopLabeler) VisitSwitchStmt(*SwitchStmt) {}
+
 func (ll *loopLabeler) VisitNullStmt() {}
 
 func (ll *loopLabeler) VisitInteger(*IntegerLiteral) {}
