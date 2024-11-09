@@ -1,10 +1,33 @@
 package frontend
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
+
+type labelContext uint
+
+const (
+	labelCtxLoop labelContext = iota
+	labelCtxSwitch
+)
+
+type labelInfo struct {
+	name        string
+	ctx         labelContext
+	switchInfo_ *switchInfo
+}
+
+type switchInfo struct {
+	nextCaseIdx uint
+	prevCase    *CaseStmt
+	cases       map[string]bool
+	caseLabels  []string
+}
 
 type loopLabeler struct {
 	nameCreator NameCreator
-	labelStack  []string
+	labelStack  []labelInfo
 	err         error
 }
 
@@ -13,37 +36,74 @@ func newLoopLabeler(nameCreator NameCreator) *loopLabeler {
 }
 
 func (ll *loopLabeler) addLabels(p *Program) error {
-	ll.labelStack = make([]string, 0)
+	ll.labelStack = make([]labelInfo, 0)
 	ll.err = nil
-
 	p.Accept(ll)
-
 	return ll.err
 }
 
-func (ll *loopLabeler) pushNewLabel() string {
-	label := ll.nameCreator.LabelName("loop")
-	ll.labelStack = append(ll.labelStack, label)
-	return label
+func (ll *loopLabeler) pushNewLabel(ctx labelContext) labelInfo {
+	var prefix string
+	var switchInfo_ *switchInfo = nil
+
+	if ctx == labelCtxLoop {
+		prefix = "loop"
+	} else {
+		prefix = "switch"
+		switchInfo_ = &switchInfo{
+			nextCaseIdx: 0,
+			prevCase:    nil,
+			cases:       make(map[string]bool),
+			caseLabels:  make([]string, 0),
+		}
+	}
+	label := ll.nameCreator.LabelName(prefix)
+	ret := labelInfo{
+		name:        label,
+		ctx:         ctx,
+		switchInfo_: switchInfo_,
+	}
+	ll.labelStack = append(ll.labelStack, ret)
+	return ret
 }
 
-func (ll *loopLabeler) peekLabel() string {
+func (ll *loopLabeler) peekLabel() *labelInfo {
 	size := len(ll.labelStack)
 	if size > 0 {
-		return ll.labelStack[size-1]
+		return &ll.labelStack[size-1]
 	} else {
-		return ""
+		return nil
 	}
 }
 
-func (ll *loopLabeler) popLabel() string {
+func (ll *loopLabeler) getLoopIdx() int {
+	size := len(ll.labelStack)
+	for i := size - 1; i >= 0; i-- {
+		if ll.labelStack[i].ctx == labelCtxLoop {
+			return i
+		}
+	}
+	return -1
+}
+
+func (ll *loopLabeler) getSwitchIdx() int {
+	size := len(ll.labelStack)
+	for i := size - 1; i >= 0; i-- {
+		if ll.labelStack[i].ctx == labelCtxSwitch {
+			return i
+		}
+	}
+	return -1
+}
+
+func (ll *loopLabeler) popLabel() *labelInfo {
 	size := len(ll.labelStack)
 	if size > 0 {
-		label := ll.labelStack[size-1]
+		ret := &ll.labelStack[size-1]
 		ll.labelStack = ll.labelStack[:size-1]
-		return label
+		return ret
 	} else {
-		return ""
+		return nil
 	}
 }
 
@@ -88,42 +148,88 @@ func (ll *loopLabeler) VisitGotoStmt(*GotoStmt) {}
 func (ll *loopLabeler) VisitLabelStmt(*LabelStmt) {}
 
 func (ll *loopLabeler) VisitDoWhileStmt(d *DoWhileStmt) {
-	d.Label = ll.pushNewLabel()
+	d.Label = ll.pushNewLabel(labelCtxLoop).name
 	d.Body.Accept(ll)
 	ll.popLabel()
 }
 
 func (ll *loopLabeler) VisitWhileStmt(w *WhileStmt) {
-	w.Label = ll.pushNewLabel()
+	w.Label = ll.pushNewLabel(labelCtxLoop).name
 	w.Body.Accept(ll)
 	ll.popLabel()
 }
 
 func (ll *loopLabeler) VisitForStmt(f *ForStmt) {
-	f.Label = ll.pushNewLabel()
+	f.Label = ll.pushNewLabel(labelCtxLoop).name
 	f.Body.Accept(ll)
 	ll.popLabel()
 }
 
 func (ll *loopLabeler) VisitBreakStmt(b *BreakStmt) {
-	label := ll.peekLabel()
-	if label == "" {
+	lInfo := ll.peekLabel()
+	if lInfo == nil {
 		ll.err = errors.New("break statement outside of loop/switch")
 		return
 	}
-	b.Label = label
+	b.Label = lInfo.name
 }
 
 func (ll *loopLabeler) VisitContinueStmt(c *ContinueStmt) {
-	label := ll.peekLabel()
-	if label == "" {
-		ll.err = errors.New("continue statement outside of loop/switch")
+	loopIdx := ll.getLoopIdx()
+	if loopIdx == -1 {
+		ll.err = errors.New("continue statement outside of loop")
 		return
 	}
-	c.Label = label
+	c.Label = ll.labelStack[loopIdx].name
 }
 
-func (ll *loopLabeler) VisitSwitchStmt(*SwitchStmt) {}
+func (ll *loopLabeler) VisitSwitchStmt(s *SwitchStmt) {
+	s.Label = ll.pushNewLabel(labelCtxSwitch).name
+	s.Body.Accept(ll)
+	lInfo := ll.popLabel()
+	if lInfo != nil {
+		caseLabels := lInfo.switchInfo_.caseLabels
+		if len(caseLabels) > 0 {
+			s.FirstCaseLabel = caseLabels[0]
+		}
+	}
+}
+
+func (ll *loopLabeler) VisitCaseStmt(c *CaseStmt) {
+	switchIdx := ll.getSwitchIdx()
+	if switchIdx == -1 {
+		ll.err = errors.New("case/default statement outside of switch")
+		return
+	}
+	switchData := ll.labelStack[switchIdx]
+
+	var caseValueStr string
+	if c.Value != nil {
+		caseValueStr = fmt.Sprintf("%d", c.Value.(*IntegerLiteral).Value)
+	} else {
+		caseValueStr = "default"
+	}
+	_, ok := switchData.switchInfo_.cases[caseValueStr]
+	if ok {
+		ll.err = errors.New("there is already a case clause for value " + caseValueStr)
+		return
+	}
+
+	label := fmt.Sprintf("%s.case.%d", switchData.name, switchData.switchInfo_.nextCaseIdx)
+	switchData.switchInfo_.cases[caseValueStr] = true
+	switchData.switchInfo_.caseLabels = append(switchData.switchInfo_.caseLabels, label)
+
+	if switchData.switchInfo_.prevCase != nil {
+		switchData.switchInfo_.prevCase.NextCaseLabel = label
+		c.PrevCaseLabel = switchData.switchInfo_.prevCase.Label
+	}
+	c.Label = label
+	c.NextCaseLabel = fmt.Sprintf("%s.break", switchData.name)
+
+	switchData.switchInfo_.prevCase = c
+	switchData.switchInfo_.nextCaseIdx++
+	ll.labelStack[switchIdx] = switchData
+}
 
 func (ll *loopLabeler) VisitNullStmt() {}
 

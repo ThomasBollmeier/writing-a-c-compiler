@@ -175,35 +175,49 @@ func (ap *AstPrinter) VisitContinueStmt(c *ContinueStmt) {
 func (ap *AstPrinter) VisitSwitchStmt(s *SwitchStmt) {
 	ap.println("SwitchStmt(")
 	ap.indent()
+	if s.Label != "" {
+		ap.println(fmt.Sprintf("label=%s", s.Label))
+	}
+	ap.println(fmt.Sprintf("first-case-label=%s", s.FirstCaseLabel))
 	ap.print("expression=")
 	ap.suppressPadding = true
 	s.Expr.Accept(ap)
-	ap.println("caseBlocks=[")
-	ap.indent()
-	for _, block := range s.CaseBlocks {
-		ap.println("Case(")
-		ap.indent()
-		if block.Value != nil {
-			ap.print("select=")
-			ap.suppressPadding = true
-			block.Value.Accept(ap)
-		} else {
-			ap.println("select=default")
-		}
-		ap.println("statements=[")
-		ap.indent()
-		for _, stmt := range block.Body {
-			stmt.Accept(ap)
-		}
-		ap.dedent()
-		ap.println("]")
-		ap.dedent()
-		ap.println(")")
-	}
-	ap.dedent()
-	ap.println("]")
+	ap.print("body=")
+	ap.suppressPadding = true
+	s.Body.Accept(ap)
 	ap.dedent()
 	ap.println(")")
+}
+
+func (ap *AstPrinter) VisitCaseStmt(c *CaseStmt) {
+	if c.Value != nil {
+		ap.println("Case(")
+		ap.indent()
+		if c.Label != "" {
+			ap.println(fmt.Sprintf("label=%s", c.Label))
+		}
+		if c.PrevCaseLabel != "" {
+			ap.println(fmt.Sprintf("prev-case-label=%s", c.PrevCaseLabel))
+		}
+		if c.NextCaseLabel != "" {
+			ap.println(fmt.Sprintf("next-case-label=%s", c.NextCaseLabel))
+		}
+		ap.print("value=")
+		ap.suppressPadding = true
+		c.Value.Accept(ap)
+		ap.dedent()
+		ap.println(")")
+	} else {
+		if c.NextCaseLabel == "" {
+			ap.println("DefaultCase()")
+		} else {
+			ap.println("DefaultCase(")
+			ap.indent()
+			ap.println(fmt.Sprintf("next-case-label=%s", c.NextCaseLabel))
+			ap.dedent()
+			ap.println(")")
+		}
+	}
 }
 
 func (ap *AstPrinter) VisitNullStmt() {

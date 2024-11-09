@@ -6,11 +6,12 @@ import (
 )
 
 type Translator struct {
-	nameCreator frontend.NameCreator
+	nameCreator  frontend.NameCreator
+	switchValues []Value
 }
 
 func NewTranslator(nameCreator frontend.NameCreator) *Translator {
-	return &Translator{nameCreator}
+	return &Translator{nameCreator, make([]Value, 0)}
 }
 
 func (t *Translator) Translate(program *frontend.Program) *Program {
@@ -82,6 +83,10 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 		ret = t.translateWhileStmt(stmt.(*frontend.WhileStmt))
 	case frontend.AstForStmt:
 		ret = t.translateForStmt(stmt.(*frontend.ForStmt))
+	case frontend.AstSwitchStmt:
+		ret = t.translateSwitchStmt(stmt.(*frontend.SwitchStmt))
+	case frontend.AstCaseStmt:
+		ret = t.translateCaseStmt(stmt.(*frontend.CaseStmt))
 	case frontend.AstContinueStmt:
 		continueStmt := stmt.(*frontend.ContinueStmt)
 		ret = []Instruction{&Jump{t.loopLabelContinue(continueStmt.Label)}}
@@ -92,6 +97,93 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 	default:
 		panic("unsupported statement type")
 	}
+
+	return ret
+}
+
+func (t *Translator) translateCaseStmt(stmt *frontend.CaseStmt) []Instruction {
+	var ret []Instruction
+
+	if stmt.PrevCaseLabel != "" {
+		ret = append(ret, &Jump{stmt.Label + ".fallthrough"})
+	}
+
+	ret = append(ret, &Label{stmt.Label})
+
+	if stmt.Value != nil {
+		caseVal, caseValInstructions := t.translateExpr(stmt.Value)
+		ret = append(ret, caseValInstructions...)
+
+		switchNestingLevel := len(t.switchValues)
+		selectVar := t.switchValues[switchNestingLevel-1]
+		caseVar := &Var{t.createVarName()}
+		resultVar := &Var{t.createVarName()}
+		ret = append(ret,
+			&Copy{caseVal, caseVar},
+			&Binary{
+				&Sub{},
+				caseVar,
+				selectVar,
+				resultVar,
+			},
+			&JumpIfNotZero{resultVar, stmt.NextCaseLabel},
+		)
+
+	}
+
+	if stmt.PrevCaseLabel != "" {
+		ret = append(ret, &Label{stmt.Label + ".fallthrough"})
+	}
+
+	return ret
+}
+
+func (t *Translator) translateSwitchStmt(stmt *frontend.SwitchStmt) []Instruction {
+	var ret []Instruction
+
+	breakLabel := t.loopLabelBreak(stmt.Label)
+
+	selectVal, selInstructions := t.translateExpr(stmt.Expr)
+	ret = append(ret, selInstructions...)
+
+	if stmt.FirstCaseLabel == "" {
+		return ret
+	}
+
+	selectVar := &Var{t.createVarName()}
+
+	// Push current selection var to stack to make it available
+	// for case statements
+	t.switchValues = append(t.switchValues, selectVar)
+
+	ret = append(ret, &Copy{selectVal, selectVar})
+	switch stmt.Body.GetType() {
+	case frontend.AstBlockStmt:
+		{
+			var bodyInstructions []Instruction
+			endOfVarDecls := false
+			for _, item := range stmt.Body.(*frontend.BlockStmt).Items {
+				switch item.GetType() {
+				case frontend.AstVarDecl:
+				default:
+					if !endOfVarDecls {
+						bodyInstructions = append(bodyInstructions,
+							&Jump{stmt.FirstCaseLabel})
+					}
+					endOfVarDecls = true
+				}
+				bodyInstructions = append(bodyInstructions, t.translateBodyItem(item)...)
+			}
+			ret = append(ret, bodyInstructions...)
+		}
+	default:
+		ret = append(ret, t.translateStatement(stmt.Body)...)
+	}
+	ret = append(ret, &Label{breakLabel})
+
+	// Pop current selection var from stack
+	size := len(t.switchValues)
+	t.switchValues = t.switchValues[0 : size-1]
 
 	return ret
 }

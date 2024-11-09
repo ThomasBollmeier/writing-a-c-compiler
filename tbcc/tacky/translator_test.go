@@ -48,6 +48,44 @@ int main(void) {
 	fmt.Println(program)
 }
 
+func TestTranslator_Translate_Switch(t *testing.T) {
+	code := `int main(void) {
+		int a = 4;
+		int b = 9;
+		int c = 0;
+		switch (a ? b : 7) {
+			case 9:
+				c = 2;
+			case 1:
+				c = c + 4;
+		}
+		return c;
+	}`
+
+	program := translate(code)
+	fmt.Println(program)
+}
+
+func TestTranslator_TranslateSwitchWithNestedCase(t *testing.T) {
+	code := `int main(void) {
+		int answer = 42;
+		switch(1) {
+			int i = 1;
+			if (0) {
+				answer = 0;	
+				case 1: 
+				i = 2; break;
+			}
+		}
+	
+		return answer == 42;
+	}`
+
+	program := translate(code)
+
+	program.Accept(NewAstPrinter(2))
+}
+
 func translate(code string) *Program {
 	nameCreator := frontend.NewNameCreator()
 	tokens, _ := frontend.Tokenize(code)

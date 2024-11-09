@@ -174,6 +174,8 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return p.parseForStmt()
 	case TokTypeSwitch:
 		return p.parseSwitchStmt()
+	case TokTypeCase, TokTypeDefault:
+		return p.parseCaseStmt()
 	case TokTypeBreak, TokTypeContinue:
 		_, _ = p.consume()
 		_, err = p.consume(TokTypeSemicolon)
@@ -212,6 +214,32 @@ func (p *Parser) parseStatement() (Statement, error) {
 	}
 }
 
+func (p *Parser) parseCaseStmt() (*CaseStmt, error) {
+	var value Expression = nil
+
+	token, err := p.consume(TokTypeCase, TokTypeDefault)
+	if err != nil {
+		return nil, err
+	}
+
+	if token.tokenType == TokTypeCase {
+		value, err = p.parseExpression(0)
+		if err != nil {
+			return nil, err
+		}
+		if value.GetType() != AstInteger {
+			return nil, errors.New("expected integer as case value")
+		}
+	}
+
+	_, err = p.consume(TokTypeColon)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CaseStmt{value, "", "", ""}, nil
+}
+
 func (p *Parser) parseSwitchStmt() (*SwitchStmt, error) {
 	_, err := p.consume(TokTypeSwitch)
 	if err != nil {
@@ -225,74 +253,53 @@ func (p *Parser) parseSwitchStmt() (*SwitchStmt, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	_, err = p.consume(TokTypeRightParen)
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(TokTypeLeftBrace)
+
+	body, err := p.parseStatement()
 	if err != nil {
 		return nil, err
 	}
 
-	var blocks []caseBlock
-	var value Expression
-	var items []BodyItem
-	var item BodyItem
-	var token *Token
-
-blocksLoop:
-	for {
-		token, err = p.peek()
-		if err != nil {
-			return nil, err
-		}
-		switch token.tokenType {
-		case TokTypeCase, TokTypeDefault:
-			_, _ = p.consume()
-			if token.tokenType == TokTypeCase {
-				value, err = p.parseExpression(0)
-				if err != nil {
-					return nil, err
-				}
-				if value.GetType() != AstInteger {
-					return nil, errors.New("expected integer as case value")
-				}
-			} else {
-				value = nil
-			}
-			_, err = p.consume(TokTypeColon)
-			if err != nil {
-				return nil, err
-			}
-			items = nil
-		blockLoop:
-			for {
-				token, err = p.peek()
-				if err != nil {
-					return nil, err
-				}
-				switch token.tokenType {
-				case TokTypeCase, TokTypeDefault, TokTypeRightBrace:
-					break blockLoop
-				default:
-				}
-				item, err = p.parseBodyItem()
-				if err != nil {
-					return nil, err
-				}
-				items = append(items, item)
-			}
-			blocks = append(blocks, caseBlock{value, items})
-		case TokTypeRightBrace:
-			_, _ = p.consume()
-			break blocksLoop
-		default:
-			return nil, errors.New("unexpected token at switch statement: " + token.lexeme)
-		}
-
+	if body.GetType() == AstBlockStmt {
+		body = p.hoistingSwitchBlockVars(body.(*BlockStmt))
 	}
 
-	return &SwitchStmt{expr, blocks}, nil
+	return &SwitchStmt{
+		Expr:           expr,
+		Body:           body,
+		Label:          "",
+		FirstCaseLabel: "",
+	}, nil
+}
+
+func (p *Parser) hoistingSwitchBlockVars(block *BlockStmt) *BlockStmt {
+	var newItems []BodyItem
+	var varDecls []BodyItem
+
+	hoisting := true
+
+	for _, item := range block.Items {
+		switch item.GetType() {
+		case AstVarDecl:
+			if hoisting {
+				varDecl := item.(*VarDecl)
+				varDecls = append(varDecls, &VarDecl{Name: varDecl.Name})
+				continue
+			}
+		case AstCaseStmt:
+			hoisting = false
+		default:
+		}
+		newItems = append(newItems, item)
+	}
+
+	newItems = append(varDecls, newItems...)
+
+	return &BlockStmt{Items: newItems}
 }
 
 func (p *Parser) parseForStmt() (*ForStmt, error) {

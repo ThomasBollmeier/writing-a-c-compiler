@@ -278,21 +278,74 @@ func TestParser_ParseMultipleCont(t *testing.T) {
 
 func TestParser_ParseSwitchStatement(t *testing.T) {
 	code := `int main(void) {
-		int n = 42;
-		int ret = 0;
-
-		switch(n) {
-		case 23:
-			ret = 0;
-			break;
-		case 42:
-			ret = 1;
-			break;
-		default:
-			ret = -1;
+		int count = 37;
+		int iterations = (count + 4) / 5;
+		switch (count % 5) {
+			case 0:
+				do {
+					count = count - 1;
+					case 4:
+						count = count - 1;
+					case 3:
+						count = count - 1;
+					case 2:
+						count = count - 1;
+					case 1:
+						count = count - 1;
+				} while ((iterations = iterations - 1) > 0);
 		}
+		return (count == 0 && iterations == 0);
+	}`
 
-		return ret;
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseSwitchWithContinue(t *testing.T) {
+	code := `int main(void) {
+		int sum = 0;
+		for (int i = 0; i < 10; i = i + 1) {
+			switch(i % 2) {
+				case 0: continue;
+				default: sum = sum + 1;
+			}
+		}
+		return sum;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseSwitchWithDecl(t *testing.T) {
+	code := `int main(void) {
+		int a = 3;
+		int b = 0;
+		switch(a) {
+			int a = (b = 5);
+			while (1);
+			int answer = 42;
+		case 3:
+			a = 4;
+			b = b + a;
+		}
+	
+		return a == 3 && b == 4;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParseSwitchNestedCase(t *testing.T) {
+	code := `int main(void) {
+		int answer = 0;
+		switch(3) {
+		case 0: return 0;
+		case 1:
+			if (0) {
+				case 3: answer = 42; break;
+			}
+		}
+	
+		return answer == 42;
 	}`
 
 	runParserWithCode(t, code, false)

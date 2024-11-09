@@ -241,24 +241,22 @@ func (vr *variableResolver) VisitSwitchStmt(s *SwitchStmt) {
 		return
 	}
 
-	var newCaseBlocks []caseBlock
-
-	for _, block := range s.CaseBlocks {
-		var newStatements []BodyItem
-		var newStmt BodyItem
-
-		for _, stmt := range block.Body {
-			newStmt, err = vr.evalAst(stmt)
-			if err != nil {
-				return
-			}
-			newStatements = append(newStatements, newStmt)
-		}
-
-		newCaseBlocks = append(newCaseBlocks, caseBlock{block.Value, newStatements})
+	var newBody Statement
+	newBody, err = vr.evalAst(s.Body)
+	if err != nil {
+		return
 	}
 
-	vr.setResult(&SwitchStmt{newExpr, newCaseBlocks}, nil)
+	vr.setResult(&SwitchStmt{
+		Expr:           newExpr,
+		Body:           newBody,
+		Label:          s.Label,
+		FirstCaseLabel: s.FirstCaseLabel,
+	}, nil)
+}
+
+func (vr *variableResolver) VisitCaseStmt(c *CaseStmt) {
+	vr.setResult(c, nil)
 }
 
 func (vr *variableResolver) VisitNullStmt() {
