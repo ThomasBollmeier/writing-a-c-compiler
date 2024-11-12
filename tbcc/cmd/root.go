@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.8.1",
+	Version: "0.9.0",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)
@@ -42,6 +42,7 @@ var (
 	stopAfterIR           *bool = nil
 	stopAfterCodegen      *bool = nil
 	stopAfterCodeEmission *bool = nil
+	doNotLink             *bool = nil
 )
 
 func run(args []string) error {
@@ -80,7 +81,7 @@ func run(args []string) error {
 		return nil
 	}
 
-	_, err = assemble(assemblyFile)
+	_, err = assemble(assemblyFile, *doNotLink)
 	if err != nil {
 		return err
 	}
@@ -93,14 +94,23 @@ func fileExists(filename string) bool {
 	return err == nil
 }
 
-func assemble(assemblyFile string) (string, error) {
-	execFile := stripSuffix(assemblyFile)
-	cmd := exec.Command("gcc", assemblyFile, "-o", execFile)
+func assemble(assemblyFile string, doNotLink bool) (string, error) {
+	var cmd *exec.Cmd
+
+	outFile := stripSuffix(assemblyFile)
+
+	if !doNotLink {
+		cmd = exec.Command("gcc", assemblyFile, "-o", outFile)
+	} else {
+		outFile += ".o"
+		cmd = exec.Command("gcc", "-c", assemblyFile, "-o", outFile)
+	}
+
 	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}
-	return execFile, nil
+	return outFile, nil
 }
 
 func compile(preProcessedFile string, options Options) (string, error) {
@@ -197,5 +207,6 @@ func init() {
 	stopAfterIR = rootCmd.PersistentFlags().Bool("tacky", false, "stop after tacky generation")
 	stopAfterCodegen = rootCmd.PersistentFlags().Bool("codegen", false, "stop after codegen")
 	stopAfterCodeEmission = rootCmd.PersistentFlags().BoolP("emission", "S", false, "stop after emission")
+	doNotLink = rootCmd.PersistentFlags().BoolP("no-linking", "c", false, "don't run linker")
 	rootCmd.MarkFlagsMutuallyExclusive("lex", "parse", "validate", "tacky", "codegen", "emission")
 }
