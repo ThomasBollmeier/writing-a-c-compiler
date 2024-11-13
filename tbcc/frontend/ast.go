@@ -22,6 +22,7 @@ const (
 	AstNullStmt
 	AstInteger
 	AstVariable
+	AstFunctionCall
 	AstUnary
 	AstPostfixIncDec
 	AstBinary
@@ -53,6 +54,7 @@ type AstVisitor interface {
 	VisitNullStmt()
 	VisitInteger(i *IntegerLiteral)
 	VisitVariable(v *Variable)
+	VisitFunctionCall(f *FunctionCall)
 	VisitUnary(u *UnaryExpression)
 	VisitPostfixIncDec(p *PostfixIncDec)
 	VisitBinary(b *BinaryExpression)
@@ -60,7 +62,7 @@ type AstVisitor interface {
 }
 
 type Program struct {
-	Func Function
+	Functions []Function
 }
 
 func (p *Program) GetType() AstType {
@@ -70,9 +72,21 @@ func (p *Program) Accept(visitor AstVisitor) {
 	visitor.VisitProgram(p)
 }
 
-type Function struct {
+type TypeId int
+
+const (
+	TypeInt TypeId = iota
+)
+
+type Parameter struct {
 	Name string
-	Body BlockStmt
+	TyId TypeId
+}
+
+type Function struct {
+	Name   string
+	Params []Parameter
+	Body   *BlockStmt
 }
 
 func (f *Function) GetType() AstType {
@@ -312,6 +326,19 @@ func (v *Variable) GetType() AstType {
 
 func (v *Variable) Accept(visitor AstVisitor) {
 	visitor.VisitVariable(v)
+}
+
+type FunctionCall struct {
+	Callee string
+	Args   []Expression
+}
+
+func (f *FunctionCall) GetType() AstType {
+	return AstFunctionCall
+}
+
+func (f *FunctionCall) Accept(visitor AstVisitor) {
+	visitor.VisitFunctionCall(f)
 }
 
 type UnaryExpression struct {

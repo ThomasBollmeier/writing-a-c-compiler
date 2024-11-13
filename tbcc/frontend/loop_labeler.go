@@ -108,11 +108,15 @@ func (ll *loopLabeler) popLabel() *labelInfo {
 }
 
 func (ll *loopLabeler) VisitProgram(p *Program) {
-	p.Func.Accept(ll)
+	for _, fun := range p.Functions {
+		fun.Accept(ll)
+	}
 }
 
 func (ll *loopLabeler) VisitFunction(f *Function) {
-	f.Body.Accept(ll)
+	if f.Body != nil {
+		f.Body.Accept(ll)
+	}
 }
 
 func (ll *loopLabeler) VisitVarDecl(*VarDecl) {}
@@ -236,6 +240,8 @@ func (ll *loopLabeler) VisitNullStmt() {}
 func (ll *loopLabeler) VisitInteger(*IntegerLiteral) {}
 
 func (ll *loopLabeler) VisitVariable(*Variable) {}
+
+func (ll *loopLabeler) VisitFunctionCall(*FunctionCall) {}
 
 func (ll *loopLabeler) VisitUnary(*UnaryExpression) {}
 

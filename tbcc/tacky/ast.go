@@ -82,7 +82,7 @@ type TacNode interface {
 }
 
 type Program struct {
-	Fun Function
+	Funs []Function
 }
 
 func (p *Program) GetType() TacType {

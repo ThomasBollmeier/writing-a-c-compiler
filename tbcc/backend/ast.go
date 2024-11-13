@@ -85,11 +85,11 @@ type AsmVisitor interface {
 }
 
 type Program struct {
-	FuncDef FunctionDef
+	FuncDefs []FunctionDef
 }
 
-func NewProgram(funcDef FunctionDef) *Program {
-	return &Program{funcDef}
+func NewProgram(funcDefs []FunctionDef) *Program {
+	return &Program{funcDefs}
 }
 
 func (p *Program) GetType() AsmAstType {

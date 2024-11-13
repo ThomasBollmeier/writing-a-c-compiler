@@ -12,8 +12,11 @@ func NewTranslator() *Translator {
 }
 
 func (t *Translator) Translate(program *tacky.Program) *Program {
-	functionDef := t.translateFunctionDef(program.Fun)
-	prog := NewProgram(*functionDef)
+	var funcDefs []FunctionDef
+	for _, fun := range program.Funs {
+		funcDefs = append(funcDefs, *t.translateFunctionDef(fun))
+	}
+	prog := NewProgram(funcDefs)
 	prog, stackSize := NewPseudoRegReplacer().Replace(prog)
 	prog = NewInstructionAdapter(stackSize).Adapt(prog)
 	return prog
@@ -234,8 +237,12 @@ func (pr *PseudoRegReplacer) initialize() {
 }
 
 func (pr *PseudoRegReplacer) VisitProgram(p *Program) {
-	newFuncDef := pr.eval(&p.FuncDef).(*FunctionDef)
-	pr.result = &Program{*newFuncDef}
+	var newFuncDefs []FunctionDef
+	for _, fun := range p.FuncDefs {
+		newFuncDef := pr.eval(&fun).(*FunctionDef)
+		newFuncDefs = append(newFuncDefs, *newFuncDef)
+	}
+	pr.result = &Program{newFuncDefs}
 }
 
 func (pr *PseudoRegReplacer) VisitFunctionDef(f *FunctionDef) {
@@ -369,8 +376,13 @@ func (ia *InstructionAdapter) Adapt(program *Program) *Program {
 }
 
 func (ia *InstructionAdapter) VisitProgram(p *Program) {
-	newFuncDef := ia.eval(&p.FuncDef).(*FunctionDef)
-	ia.result = &Program{*newFuncDef}
+	var newFuncDefs []FunctionDef
+	for _, fun := range p.FuncDefs {
+		newFuncDef := ia.eval(&fun).(*FunctionDef)
+		newFuncDefs = append(newFuncDefs, *newFuncDef)
+	}
+	ia.result = &Program{newFuncDefs}
+
 }
 
 func (ia *InstructionAdapter) VisitFunctionDef(f *FunctionDef) {

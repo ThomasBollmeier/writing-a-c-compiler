@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.9.0",
+	Version: "0.9.1",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)

@@ -15,7 +15,9 @@ func NewAstPrinter(delta int) *AstPrinter {
 func (ap *AstPrinter) visitProgram(p *Program) {
 	ap.println("Program(")
 	ap.indent()
-	p.Fun.Accept(ap)
+	for _, fun := range p.Funs {
+		fun.Accept(ap)
+	}
 	ap.dedent()
 	ap.println(")")
 }

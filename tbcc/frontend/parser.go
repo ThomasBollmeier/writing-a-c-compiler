@@ -21,45 +21,110 @@ func NewParser(tokens []Token) *Parser {
 }
 
 func (p *Parser) ParseProgram() (*Program, error) {
-	f, err := p.parseFunction()
-	if err != nil {
-		return nil, err
+	var fs []Function
+
+	for !p.endOfInput() {
+		f, err := p.parseFunction()
+		if err != nil {
+			return nil, err
+		}
+		fs = append(fs, *f)
 	}
-	if !p.endOfInput() {
-		return nil, errors.New("expected end of input")
-	}
-	return &Program{*f}, nil
+
+	return &Program{fs}, nil
 }
 
 func (p *Parser) parseFunction() (*Function, error) {
-	_, err := p.consume(TokTypeInt)
+
+	_, err := p.consume(TokTypeInt) // only integer types are supported for now
 	if err != nil {
 		return nil, err
 	}
+
 	token, err := p.consume(TokTypeIdentifier)
 	if err != nil {
 		return nil, err
 	}
 	name := token.lexeme
+
 	_, err = p.consume(TokTypeLeftParen)
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(TokTypeVoid)
+
+	var params []Parameter
+	var param *Parameter
+	token, err = p.peek()
 	if err != nil {
 		return nil, err
 	}
+	if token.tokenType != TokTypeVoid {
+	paramsLoop:
+		for {
+			param, err = p.parseParameter()
+			if err != nil {
+				return nil, err
+			}
+			params = append(params, *param)
+			token, err = p.peek()
+			if err != nil {
+				return nil, err
+			}
+
+			switch token.tokenType {
+			case TokTypeRightParen:
+				break paramsLoop
+			case TokTypeComma:
+				_, _ = p.consume(TokTypeComma)
+			default:
+				return nil, errors.New("expected comma or parenthesis")
+			}
+		}
+	} else {
+		_, _ = p.consume(TokTypeVoid)
+	}
+
 	_, err = p.consume(TokTypeRightParen)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := p.parseBlockStmt()
+	token, err = p.peek()
 	if err != nil {
 		return nil, err
 	}
 
-	return &Function{name, *body}, nil
+	var body *BlockStmt
+	if token.tokenType != TokTypeSemicolon {
+		body, err = p.parseBlockStmt()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, _ = p.consume(TokTypeSemicolon)
+	}
+
+	return &Function{
+		Name:   name,
+		Params: params,
+		Body:   body,
+	}, nil
+}
+
+func (p *Parser) parseParameter() (*Parameter, error) {
+	_, err := p.consume(TokTypeInt) // only integer types are supported for now
+	if err != nil {
+		return nil, err
+	}
+	identifier, err := p.consume(TokTypeIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Parameter{
+		Name: identifier.lexeme,
+		TyId: TypeInt,
+	}, nil
 }
 
 func (p *Parser) parseBlockStmt() (*BlockStmt, error) {
@@ -96,12 +161,18 @@ func (p *Parser) parseBlockStmt() (*BlockStmt, error) {
 }
 
 func (p *Parser) parseBodyItem() (BodyItem, error) {
-	token, err := p.peek()
-	if err != nil {
-		return nil, err
-	}
-	if token.tokenType == TokTypeInt {
-		return p.parseVarDeclaration()
+	tokens := p.peekN(3)
+
+	if len(tokens) == 3 {
+		if tokens[0].tokenType == TokTypeInt && tokens[1].tokenType == TokTypeIdentifier {
+			if tokens[2].tokenType == TokTypeLeftParen {
+				return p.parseFunction()
+			} else {
+				return p.parseVarDeclaration()
+			}
+		} else {
+			return p.parseStatement()
+		}
 	} else {
 		return p.parseStatement()
 	}
@@ -616,7 +687,19 @@ func (p *Parser) parseFactor() (Expression, error) {
 		ret = &IntegerLiteral{int(value)}
 	case TokTypeIdentifier:
 		ident, _ := p.consume()
-		ret = &Variable{ident.lexeme}
+		nextToken, err := p.peek()
+		if err == nil && nextToken.tokenType == TokTypeLeftParen {
+			args, err := p.parseArguments()
+			if err != nil {
+				return nil, err
+			}
+			ret = &FunctionCall{
+				Callee: ident.lexeme,
+				Args:   args,
+			}
+		} else {
+			ret = &Variable{ident.lexeme}
+		}
 	case TokTypeMinus, TokTypeTilde, TokTypeExclMark:
 		_, _ = p.consume()
 		operator := token.lexeme
@@ -679,6 +762,52 @@ func (p *Parser) parseFactor() (Expression, error) {
 	}
 
 	return ret, nil
+}
+
+func (p *Parser) parseArguments() ([]Expression, error) {
+	var args []Expression
+	var arg Expression
+	var token *Token
+	var err error
+
+	_, err = p.consume(TokTypeLeftParen)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err = p.peek()
+	if err != nil {
+		return nil, err
+	}
+	if token.tokenType == TokTypeRightParen {
+		_, _ = p.consume()
+		return args, nil
+	}
+
+argsLoop:
+	for {
+		arg, err = p.parseExpression(0)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+
+		token, err = p.peek()
+		if err != nil {
+			return nil, err
+		}
+		switch token.tokenType {
+		case TokTypeRightParen:
+			_, _ = p.consume()
+			break argsLoop
+		case TokTypeComma:
+			_, _ = p.consume()
+		default:
+			return nil, errors.New("unexpected token: " + token.lexeme)
+		}
+	}
+
+	return args, nil
 }
 
 func (p *Parser) consume(expected ...TokenType) (*Token, error) {

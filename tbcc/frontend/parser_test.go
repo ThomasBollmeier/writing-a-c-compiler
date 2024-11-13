@@ -351,6 +351,35 @@ func TestParser_ParseSwitchNestedCase(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ParseProgramWithFunctions(t *testing.T) {
+	code := `
+	int init(void);
+
+	int add(int a, int b) {
+		int init(void); 
+		init();
+		return a + b;
+	}
+
+	int main(void) {
+		int a = add(41, 1);
+		return a;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_NestedFuncDef(t *testing.T) {
+	code := `int main(void) {
+		int foo(void) {
+    	    return 1;
+		}
+    	return foo();
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseLabelMultiple(t *testing.T) {
 	code := `int main(void) {
  	   	int a = 42;
@@ -428,10 +457,12 @@ func runParserWithCode(t *testing.T, code string, expectError bool) {
 	if !expectError {
 		if err != nil {
 			t.Errorf("ParseProgram() error = %v", err)
+			return
 		}
 
 		if program.GetType() != AstProgram {
 			t.Errorf("program.GetType() = %v, want %v", program.GetType(), AstProgram)
+			return
 		}
 
 		program.Accept(NewAstPrinter(4))

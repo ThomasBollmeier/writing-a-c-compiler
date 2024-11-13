@@ -15,7 +15,9 @@ func NewAstPrinter(delta int) *AstPrinter {
 func (ap *AstPrinter) VisitProgram(p *Program) {
 	ap.println("Program(")
 	ap.indent()
-	p.Func.Accept(ap)
+	for _, fun := range p.Functions {
+		fun.Accept(ap)
+	}
 	ap.dedent()
 	ap.println(")")
 }
@@ -24,9 +26,20 @@ func (ap *AstPrinter) VisitFunction(f *Function) {
 	ap.println("Function(")
 	ap.indent()
 	ap.println("name=\"" + f.Name + "\"")
-	ap.print("body=")
-	ap.suppressPadding = true
-	f.Body.Accept(ap)
+	if len(f.Params) > 0 {
+		ap.println("parameters=[")
+		ap.indent()
+		for _, param := range f.Params {
+			ap.println(fmt.Sprintf("%s: int", param.Name))
+		}
+		ap.dedent()
+		ap.println("]")
+	}
+	if f.Body != nil {
+		ap.print("body=")
+		ap.suppressPadding = true
+		f.Body.Accept(ap)
+	}
 	ap.dedent()
 	ap.println(")")
 }
@@ -232,6 +245,25 @@ func (ap *AstPrinter) VisitInteger(i *IntegerLiteral) {
 func (ap *AstPrinter) VisitVariable(v *Variable) {
 	text := fmt.Sprintf("Variable(%s)", v.Name)
 	ap.println(text)
+}
+
+func (ap *AstPrinter) VisitFunctionCall(f *FunctionCall) {
+	ap.println("FunctionCall(")
+	ap.indent()
+	ap.println(fmt.Sprintf("name=%s", f.Callee))
+	if len(f.Args) > 0 {
+		ap.println("arguments=[")
+		ap.indent()
+		for _, arg := range f.Args {
+			arg.Accept(ap)
+		}
+		ap.dedent()
+		ap.println("]")
+	} else {
+		ap.println("arguments=[]")
+	}
+	ap.dedent()
+	ap.println(")")
 }
 
 func (ap *AstPrinter) VisitUnary(unary *UnaryExpression) {

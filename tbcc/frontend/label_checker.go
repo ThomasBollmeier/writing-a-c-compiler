@@ -43,11 +43,15 @@ func (lc *labelChecker) check(program *Program) error {
 }
 
 func (lc *labelChecker) VisitProgram(p *Program) {
-	p.Func.Accept(lc)
+	for _, fun := range p.Functions {
+		fun.Accept(lc)
+	}
 }
 
 func (lc *labelChecker) VisitFunction(f *Function) {
-	f.Body.Accept(lc)
+	if f.Body != nil {
+		f.Body.Accept(lc)
+	}
 }
 
 func (lc *labelChecker) VisitVarDecl(*VarDecl) {}
@@ -147,6 +151,8 @@ func (lc *labelChecker) VisitNullStmt() {}
 func (lc *labelChecker) VisitInteger(*IntegerLiteral) {}
 
 func (lc *labelChecker) VisitVariable(*Variable) {}
+
+func (lc *labelChecker) VisitFunctionCall(*FunctionCall) {}
 
 func (lc *labelChecker) VisitUnary(*UnaryExpression) {}
 

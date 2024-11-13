@@ -24,7 +24,9 @@ func (cg *CodeGenerator) GenerateCode(program Program) string {
 }
 
 func (cg *CodeGenerator) VisitProgram(p *Program) {
-	p.FuncDef.Accept(cg)
+	for _, funcDef := range p.FuncDefs {
+		funcDef.Accept(cg)
+	}
 }
 
 func (cg *CodeGenerator) VisitFunctionDef(f *FunctionDef) {

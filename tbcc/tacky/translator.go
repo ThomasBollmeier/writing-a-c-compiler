@@ -15,12 +15,18 @@ func NewTranslator(nameCreator frontend.NameCreator) *Translator {
 }
 
 func (t *Translator) Translate(program *frontend.Program) *Program {
-	return &Program{t.translateFunction(&program.Func)}
+	var funs []Function
+
+	for _, fun := range program.Functions {
+		funs = append(funs, t.translateFunction(&fun))
+	}
+
+	return &Program{funs}
 }
 
 func (t *Translator) translateFunction(f *frontend.Function) Function {
 
-	bodyInstructions := t.translateBlock(&f.Body)
+	bodyInstructions := t.translateBlock(f.Body)
 	bodyInstructions = append(bodyInstructions, &Return{&IntConstant{0}})
 
 	return Function{

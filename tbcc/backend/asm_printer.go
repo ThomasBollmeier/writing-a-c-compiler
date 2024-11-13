@@ -17,7 +17,9 @@ func NewAsmPrinter(delta int) *AsmPrinter {
 func (ap *AsmPrinter) VisitProgram(p *Program) {
 	ap.println("Program(")
 	ap.indent()
-	p.FuncDef.Accept(ap)
+	for _, funcDef := range p.FuncDefs {
+		funcDef.Accept(ap)
+	}
 	ap.dedent()
 	ap.println(")")
 }

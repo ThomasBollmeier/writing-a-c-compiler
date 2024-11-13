@@ -35,19 +35,55 @@ func (vr *variableResolver) resolve(program *Program) (*Program, error) {
 }
 
 func (vr *variableResolver) VisitProgram(p *Program) {
-	newFunc, err := vr.evalAst(&p.Func)
-	if err != nil {
-		return
+	var newFunctions []Function
+
+	for _, fun := range p.Functions {
+		ast, err := vr.evalAst(&fun)
+		if err != nil {
+			return
+		}
+		newFunctions = append(newFunctions, *ast.(*Function))
 	}
-	vr.setResult(&Program{*newFunc.(*Function)}, nil)
+
+	vr.setResult(&Program{newFunctions}, nil)
 }
 
 func (vr *variableResolver) VisitFunction(f *Function) {
-	newBody, err := vr.evalAst(&f.Body)
-	if err != nil {
-		return
+	var newBody *BlockStmt
+	var newParams []Parameter
+
+	if f.Body != nil {
+
+		vr.env = newEnvironment(vr.env)
+
+		for _, param := range f.Params {
+			uniqueName := vr.nameCreator.VarName()
+			vr.env.set(param.Name, uniqueName)
+			newParams = append(newParams, Parameter{
+				Name: uniqueName,
+				TyId: param.TyId,
+			})
+		}
+
+		ast, err := vr.evalAst(f.Body)
+		if err != nil {
+			vr.env = vr.env.getParent()
+			return
+		}
+		newBody = ast.(*BlockStmt)
+
+		vr.env = vr.env.getParent()
+
+	} else {
+		newParams = f.Params
+		newBody = nil
 	}
-	vr.setResult(&Function{f.Name, *newBody.(*BlockStmt)}, nil)
+
+	vr.setResult(&Function{
+		Name:   f.Name,
+		Params: newParams,
+		Body:   newBody,
+	}, nil)
 }
 
 func (vr *variableResolver) VisitVarDecl(v *VarDecl) {
@@ -274,6 +310,20 @@ func (vr *variableResolver) VisitVariable(v *Variable) {
 		return
 	}
 	vr.setResult(&Variable{uniqueName}, nil)
+}
+
+func (vr *variableResolver) VisitFunctionCall(f *FunctionCall) {
+	var newArgs []Expression
+
+	for _, arg := range f.Args {
+		newArg, err := vr.evalAst(arg)
+		if err != nil {
+			return
+		}
+		newArgs = append(newArgs, newArg)
+	}
+
+	vr.setResult(&FunctionCall{f.Callee, newArgs}, nil)
 }
 
 func (vr *variableResolver) VisitUnary(u *UnaryExpression) {
