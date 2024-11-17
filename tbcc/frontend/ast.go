@@ -72,12 +72,6 @@ func (p *Program) Accept(visitor AstVisitor) {
 	visitor.VisitProgram(p)
 }
 
-type TypeId int
-
-const (
-	TypeInt TypeId = iota
-)
-
 type Parameter struct {
 	Name string
 	TyId TypeId

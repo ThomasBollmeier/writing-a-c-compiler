@@ -377,6 +377,56 @@ func TestParser_NestedFuncDef(t *testing.T) {
     	return foo();
 	}`
 
+	runParserWithCode(t, code, true)
+}
+
+func TestParser_Recursion(t *testing.T) {
+	code := `int fib(int n) {
+		if (n == 0 || n == 1) {
+			return n;
+		} else {
+			return fib(n - 1) + fib(n - 2);
+		}
+	}
+	
+	int main(void) {
+		int n = 6;
+		return fib(n);
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_FunctionDecl(t *testing.T) {
+	code := `int main(void) {
+		int foo = 3;
+		int bar = 4;
+		if (foo + bar > 0) {
+			int foo(void);
+			bar = foo();
+		}
+		return foo + bar;
+	}
+	
+	int foo(void) {
+		return 8;
+	}`
+
+	runParserWithCode(t, code, false)
+}
+
+func TestParser_ParameterShadowsFunction(t *testing.T) {
+	code := `int a(void) {
+			return 1;
+		}
+		
+		int b(int a) {
+			return a;
+		}
+		
+		int main(void) {
+			return a() + b(2);
+		}`
 	runParserWithCode(t, code, false)
 }
 

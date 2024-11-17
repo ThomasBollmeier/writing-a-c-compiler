@@ -14,6 +14,12 @@ func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, erro
 		return nil, err
 	}
 
-	resolver := newVariableResolver(nameCreator)
+	globalEnv := newEnvironment(nil)
+	errorList := newTypeChecker(globalEnv).check(program)
+	if len(errorList) > 0 {
+		return nil, errorList[0]
+	}
+
+	resolver := newIdentifierResolver(nameCreator)
 	return resolver.resolve(program)
 }
