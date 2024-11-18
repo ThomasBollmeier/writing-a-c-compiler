@@ -15,6 +15,7 @@ const (
 	TacJumpIfZero
 	TacJumpIfNotZero
 	TacLabel
+	TacFunCall
 	TacIntConstant
 	TacVar
 	TacComplement
@@ -51,6 +52,7 @@ type TacVisitor interface {
 	visitJumpIfZero(j *JumpIfZero)
 	visitJumpIfNotZero(j *JumpIfNotZero)
 	visitLabel(l *Label)
+	visitFunctionCall(f *FunctionCall)
 	visitIntConstant(i *IntConstant)
 	visitVar(v *Var)
 	visitComplement()
@@ -94,8 +96,9 @@ func (p *Program) Accept(visitor TacVisitor) {
 }
 
 type Function struct {
-	Ident string
-	Body  []Instruction
+	Ident      string
+	Parameters []string
+	Body       []Instruction
 }
 
 func (f *Function) GetType() TacType {
@@ -212,6 +215,20 @@ func (l *Label) GetType() TacType {
 
 func (l *Label) Accept(visitor TacVisitor) {
 	visitor.visitLabel(l)
+}
+
+type FunctionCall struct {
+	Name string
+	Args []Value
+	Dst  Value
+}
+
+func (f *FunctionCall) GetType() TacType {
+	return TacFunCall
+}
+
+func (f *FunctionCall) Accept(visitor TacVisitor) {
+	visitor.visitFunctionCall(f)
 }
 
 type Value interface {

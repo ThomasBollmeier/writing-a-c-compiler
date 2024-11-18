@@ -86,6 +86,21 @@ func TestTranslator_TranslateSwitchWithNestedCase(t *testing.T) {
 	program.Accept(NewAstPrinter(2))
 }
 
+func TestTranslator_TranslateFunctionCall(t *testing.T) {
+	code := `
+	int add(int a, int b) {
+		return a + b;
+	}
+
+	int main(void) {
+		return add(40, 2);
+	}`
+
+	program := translate(code)
+
+	program.Accept(NewAstPrinter(2))
+}
+
 func translate(code string) *Program {
 	nameCreator := frontend.NewNameCreator()
 	tokens, _ := frontend.Tokenize(code)

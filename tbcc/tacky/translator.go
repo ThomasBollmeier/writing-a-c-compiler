@@ -18,7 +18,9 @@ func (t *Translator) Translate(program *frontend.Program) *Program {
 	var funs []Function
 
 	for _, fun := range program.Functions {
-		funs = append(funs, t.translateFunction(&fun))
+		if fun.Body != nil {
+			funs = append(funs, t.translateFunction(&fun))
+		}
 	}
 
 	return &Program{funs}
@@ -26,12 +28,18 @@ func (t *Translator) Translate(program *frontend.Program) *Program {
 
 func (t *Translator) translateFunction(f *frontend.Function) Function {
 
+	var parameters []string
+	for _, param := range f.Params {
+		parameters = append(parameters, param.Name)
+	}
+
 	bodyInstructions := t.translateBlock(f.Body)
 	bodyInstructions = append(bodyInstructions, &Return{&IntConstant{0}})
 
 	return Function{
-		f.Name,
-		bodyInstructions,
+		Ident:      f.Name,
+		Parameters: parameters,
+		Body:       bodyInstructions,
 	}
 }
 
@@ -66,6 +74,8 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 	var val Value
 
 	switch stmt.GetType() {
+	case frontend.AstFunction:
+		return ret
 	case frontend.AstReturn:
 		retStmt := stmt.(*frontend.ReturnStmt)
 		val, ret = t.translateExpr(retStmt.Expression)
@@ -101,7 +111,7 @@ func (t *Translator) translateStatement(stmt frontend.Statement) []Instruction {
 		ret = []Instruction{&Jump{t.loopLabelBreak(breakStmt.Label)}}
 	case frontend.AstNullStmt:
 	default:
-		panic("unsupported statement type")
+		panic(fmt.Sprintf("unsupported statement type: %v", stmt.GetType()))
 	}
 
 	return ret
@@ -316,6 +326,22 @@ func (t *Translator) translateExpr(expr frontend.Expression) (Value, []Instructi
 	case frontend.AstVariable:
 		variable := expr.(*frontend.Variable)
 		return &Var{variable.Name}, nil
+	case frontend.AstFunctionCall:
+		functionCall := expr.(*frontend.FunctionCall)
+		var instructions []Instruction
+		arguments := make([]Value, len(functionCall.Args))
+		for i, arg := range functionCall.Args {
+			argVal, argInstructions := t.translateExpr(arg)
+			arguments[i] = argVal
+			instructions = append(instructions, argInstructions...)
+		}
+		dst := &Var{t.createVarName()}
+		instructions = append(instructions, &FunctionCall{
+			Name: functionCall.Callee,
+			Args: arguments,
+			Dst:  dst,
+		})
+		return dst, instructions
 	case frontend.AstUnary:
 		unary := expr.(*frontend.UnaryExpression)
 		unaryOp := t.getUnaryOp(unary.Operator)

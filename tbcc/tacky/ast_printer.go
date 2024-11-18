@@ -26,6 +26,17 @@ func (ap *AstPrinter) visitFunction(f *Function) {
 	ap.println("Function(")
 	ap.indent()
 	ap.println("name=" + f.Ident)
+	if len(f.Parameters) > 0 {
+		ap.println("parameters=[")
+		ap.indent()
+		for _, param := range f.Parameters {
+			ap.println(param)
+		}
+		ap.dedent()
+		ap.println("]")
+	} else {
+		ap.println("parameters=[]")
+	}
 	ap.println("body=[")
 	ap.indent()
 	for _, inst := range f.Body {
@@ -137,6 +148,30 @@ func (ap *AstPrinter) visitJumpIfNotZero(j *JumpIfNotZero) {
 
 func (ap *AstPrinter) visitLabel(l *Label) {
 	ap.println("Label(name=" + l.Name + ")")
+}
+
+func (ap *AstPrinter) visitFunctionCall(f *FunctionCall) {
+	ap.println("FunctionCall(")
+	ap.indent()
+	ap.println("name=" + f.Name)
+	if len(f.Args) > 0 {
+		ap.println("arguments=[")
+		ap.indent()
+		for _, arg := range f.Args {
+			arg.Accept(ap)
+			ap.println("")
+		}
+		ap.dedent()
+		ap.println("]")
+	} else {
+		ap.println("arguments=[]")
+	}
+	ap.print("dst=")
+	ap.suppressPadding = true
+	f.Dst.Accept(ap)
+	ap.println("")
+	ap.dedent()
+	ap.println(")")
 }
 
 func (ap *AstPrinter) visitIntConstant(i *IntConstant) {
