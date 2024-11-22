@@ -3,6 +3,7 @@ package backend
 import (
 	"fmt"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
+	"slices"
 )
 
 type Translator struct{}
@@ -17,8 +18,8 @@ func (t *Translator) Translate(program *tacky.Program) *Program {
 		funcDefs = append(funcDefs, *t.translateFunctionDef(fun))
 	}
 	prog := NewProgram(funcDefs)
-	prog, stackSize := NewPseudoRegReplacer().Replace(prog)
-	prog = NewInstructionAdapter(stackSize).Adapt(prog)
+	prog, stackSizes := NewPseudoRegReplacer().Replace(prog)
+	prog = NewInstructionAdapter(stackSizes).Adapt(prog)
 	return prog
 }
 
@@ -115,9 +116,74 @@ func (t *Translator) translateInstructions(instruction tacky.Instruction) []Inst
 	case tacky.TacLabel:
 		label := instruction.(*tacky.Label)
 		return []Instruction{NewLabel(label.Name)}
+	case tacky.TacFunCall:
+		funCall := instruction.(*tacky.FunctionCall)
+		return t.translateFunctionCall(funCall)
 	default:
 		panic("unsupported instruction type")
 	}
+}
+
+func (t *Translator) translateFunctionCall(funCall *tacky.FunctionCall) []Instruction {
+	var ret []Instruction
+	var registerArgs []tacky.Value
+	var stackArgs []tacky.Value
+	var stackPadding int
+
+	argRegisters := []string{RegDI, RegSI, RegDX, RegCX, RegR8, RegR9}
+	numRegs := len(argRegisters)
+	numArgs := len(funCall.Args)
+
+	if numArgs <= numRegs {
+		registerArgs = funCall.Args[:numArgs]
+	} else {
+		registerArgs = funCall.Args[:numRegs]
+		stackArgs = funCall.Args[numRegs:]
+		slices.Reverse(stackArgs)
+	}
+
+	if len(stackArgs)%2 != 0 {
+		stackPadding = 8
+		ret = append(ret, NewAllocStack(stackPadding))
+	}
+
+	// Fill registers with call arguments
+	for i, argValue := range registerArgs {
+		arg := t.translateOperand(argValue)
+		ret = append(ret, NewMov(arg, NewRegister(argRegisters[i])))
+	}
+
+	ax := NewRegister(RegAX)
+
+	var immediate *Immediate
+	var register *Register
+	var ok bool
+
+	// Push remaining args onto the stack
+	for _, argValue := range stackArgs {
+		arg := t.translateOperand(argValue)
+		if immediate, ok = arg.(*Immediate); ok {
+			ret = append(ret, NewPush(immediate))
+		} else if register, ok = arg.(*Register); ok {
+			ret = append(ret, NewPush(register))
+		} else {
+			ret = append(ret, NewMov(arg, ax), NewPush(ax))
+		}
+	}
+
+	ret = append(ret, NewCall(funCall.Name))
+
+	// adjust stack pointer
+	bytesToRemove := 8*len(stackArgs) + stackPadding
+	if bytesToRemove > 0 {
+		ret = append(ret, NewDeAllocStack(bytesToRemove))
+	}
+
+	// Set result
+	dst := t.translateOperand(funCall.Dst)
+	ret = append(ret, NewMov(ax, dst))
+
+	return ret
 }
 
 func (t *Translator) translateRelation(binary *tacky.Binary) []Instruction {
@@ -211,28 +277,34 @@ func (t *Translator) translateBinaryOperator(op tacky.BinaryOp) BinaryOp {
 	}
 }
 
+type varOffsetsPerFunc map[string]int
+
 type PseudoRegReplacer struct {
-	varSizeByte int
-	numVars     int
-	varOffsets  map[string]int
-	result      any
+	varSizeByte  int
+	currFunction string
+	varOffsets   map[string]varOffsetsPerFunc
+	result       any
 }
 
 func NewPseudoRegReplacer() *PseudoRegReplacer {
 	return &PseudoRegReplacer{}
 }
 
-func (pr *PseudoRegReplacer) Replace(p *Program) (*Program, int) {
+type VarSizesPerFunc map[string]int
+
+func (pr *PseudoRegReplacer) Replace(p *Program) (*Program, VarSizesPerFunc) {
 	pr.initialize()
 	prog := pr.eval(p).(*Program)
-	totalVarSize := pr.numVars * pr.varSizeByte
-	return prog, totalVarSize
+	sizes := make(VarSizesPerFunc)
+	for fn, offsets := range pr.varOffsets {
+		sizes[fn] = len(offsets) * pr.varSizeByte
+	}
+	return prog, sizes
 }
 
 func (pr *PseudoRegReplacer) initialize() {
 	pr.varSizeByte = 4
-	pr.numVars = 0
-	pr.varOffsets = make(map[string]int)
+	pr.varOffsets = make(map[string]varOffsetsPerFunc)
 	pr.result = nil
 }
 
@@ -247,11 +319,13 @@ func (pr *PseudoRegReplacer) VisitProgram(p *Program) {
 
 func (pr *PseudoRegReplacer) VisitFunctionDef(f *FunctionDef) {
 	var instructions []Instruction
-	name := f.Name
+	pr.currFunction = f.Name
+	pr.varOffsets[f.Name] = make(varOffsetsPerFunc)
 	for _, instruction := range f.Instructions {
 		instructions = append(instructions, pr.eval(instruction).(Instruction))
 	}
-	pr.result = &FunctionDef{name, instructions}
+	pr.result = &FunctionDef{pr.currFunction, instructions}
+	pr.currFunction = ""
 }
 
 func (pr *PseudoRegReplacer) VisitMov(m *Mov) {
@@ -307,6 +381,19 @@ func (pr *PseudoRegReplacer) VisitAllocStack(a *AllocStack) {
 	pr.result = a
 }
 
+func (pr *PseudoRegReplacer) VisitDeAllocStack(d *DeAllocStack) {
+	pr.result = d
+}
+
+func (pr *PseudoRegReplacer) VisitPush(p *Push) {
+	op := pr.eval(p.Op).(Operand)
+	pr.result = NewPush(op)
+}
+
+func (pr *PseudoRegReplacer) VisitCall(c *Call) {
+	pr.result = c
+}
+
 func (pr *PseudoRegReplacer) VisitReturn() {
 	pr.result = &Return{}
 }
@@ -344,11 +431,13 @@ func (pr *PseudoRegReplacer) VisitRegister(r *Register) {
 }
 
 func (pr *PseudoRegReplacer) VisitPseudoReg(p *PseudoReg) {
-	offset, ok := pr.varOffsets[p.Ident]
+	varOffsets := pr.varOffsets[pr.currFunction]
+	offset, ok := varOffsets[p.Ident]
 	if !ok {
-		pr.numVars++
-		offset = -pr.numVars * pr.varSizeByte
-		pr.varOffsets[p.Ident] = offset
+		numVars := len(varOffsets)
+		numVars++
+		offset = -numVars * pr.varSizeByte
+		pr.varOffsets[pr.currFunction][p.Ident] = offset
 	}
 	pr.result = NewStack(offset)
 }
@@ -363,12 +452,12 @@ func (pr *PseudoRegReplacer) eval(ast AST) any {
 }
 
 type InstructionAdapter struct {
-	stackSize int
-	result    any
+	stackSizes VarSizesPerFunc
+	result     any
 }
 
-func NewInstructionAdapter(stackSize int) *InstructionAdapter {
-	return &InstructionAdapter{stackSize, nil}
+func NewInstructionAdapter(stackSizes VarSizesPerFunc) *InstructionAdapter {
+	return &InstructionAdapter{stackSizes, nil}
 }
 
 func (ia *InstructionAdapter) Adapt(program *Program) *Program {
@@ -386,7 +475,8 @@ func (ia *InstructionAdapter) VisitProgram(p *Program) {
 }
 
 func (ia *InstructionAdapter) VisitFunctionDef(f *FunctionDef) {
-	newInstructions := []Instruction{NewAllocStack(ia.stackSize)}
+	stackSize := ia.stackSizes[f.Name]
+	newInstructions := []Instruction{NewAllocStack(stackSize)}
 	for _, instruction := range f.Instructions {
 		newInstructions = append(newInstructions, ia.eval(instruction).([]Instruction)...)
 	}
@@ -509,6 +599,18 @@ func (ia *InstructionAdapter) VisitLabel(l *Label) {
 
 func (ia *InstructionAdapter) VisitAllocStack(a *AllocStack) {
 	ia.result = []Instruction{a}
+}
+
+func (ia *InstructionAdapter) VisitDeAllocStack(d *DeAllocStack) {
+	ia.result = []Instruction{d}
+}
+
+func (ia *InstructionAdapter) VisitPush(p *Push) {
+	ia.result = []Instruction{p}
+}
+
+func (ia *InstructionAdapter) VisitCall(c *Call) {
+	ia.result = []Instruction{c}
 }
 
 func (ia *InstructionAdapter) VisitReturn() {

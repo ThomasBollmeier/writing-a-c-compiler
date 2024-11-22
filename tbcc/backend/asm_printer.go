@@ -140,6 +140,22 @@ func (ap *AsmPrinter) VisitAllocStack(a *AllocStack) {
 	ap.println(fmt.Sprintf("AllocStack(%d)", a.N))
 }
 
+func (ap *AsmPrinter) VisitDeAllocStack(d *DeAllocStack) {
+	ap.println(fmt.Sprintf("DeAllocStack(%d)", d.N))
+}
+
+func (ap *AsmPrinter) VisitPush(p *Push) {
+	ap.println("Push(")
+	ap.indent()
+	p.Op.Accept(ap)
+	ap.dedent()
+	ap.println(")")
+}
+
+func (ap *AsmPrinter) VisitCall(c *Call) {
+	ap.println(fmt.Sprintf("Call(%s)", c.Identifier))
+}
+
 func (ap *AsmPrinter) VisitReturn() {
 	ap.println("Ret")
 }

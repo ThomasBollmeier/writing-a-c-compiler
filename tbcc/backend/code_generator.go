@@ -109,6 +109,21 @@ func (cg *CodeGenerator) VisitAllocStack(a *AllocStack) {
 	cg.writeln(fmt.Sprintf("\tsubq $%d, %%rsp", a.N))
 }
 
+func (cg *CodeGenerator) VisitDeAllocStack(d *DeAllocStack) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitPush(p *Push) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (cg *CodeGenerator) VisitCall(c *Call) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (cg *CodeGenerator) VisitReturn() {
 	cg.writeln("\tmovq %rbp, %rsp")
 	cg.writeln("\tpopq %rbp")

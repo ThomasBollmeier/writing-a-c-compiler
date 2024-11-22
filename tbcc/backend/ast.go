@@ -16,6 +16,9 @@ const (
 	AsmSetCC
 	AsmLabel
 	AsmAllocStack
+	AsmDeAllocStack
+	AsmPush
+	AsmCall
 	AsmReturn
 	AsmNeg
 	AsmNot
@@ -48,6 +51,10 @@ const (
 	RegAX  string = "AX"
 	RegCX  string = "CX"
 	RegDX         = "DX"
+	RegDI         = "DI"
+	RegSI         = "SI"
+	RegR8         = "R8"
+	RegR9         = "R9"
 	RegR10        = "R10"
 	RegR11        = "R11"
 )
@@ -71,6 +78,9 @@ type AsmVisitor interface {
 	VisitSetCC(s *SetCC)
 	VisitLabel(l *Label)
 	VisitAllocStack(a *AllocStack)
+	VisitDeAllocStack(d *DeAllocStack)
+	VisitPush(p *Push)
+	VisitCall(c *Call)
 	VisitReturn()
 	VisitNeg(n *Neg)
 	VisitNot(n *Not)
@@ -299,6 +309,54 @@ func (a *AllocStack) GetType() AsmAstType {
 
 func (a *AllocStack) Accept(visitor AsmVisitor) {
 	visitor.VisitAllocStack(a)
+}
+
+type DeAllocStack struct {
+	N int
+}
+
+func NewDeAllocStack(n int) *DeAllocStack {
+	return &DeAllocStack{n}
+}
+
+func (d *DeAllocStack) GetType() AsmAstType {
+	return AsmDeAllocStack
+}
+
+func (d *DeAllocStack) Accept(visitor AsmVisitor) {
+	visitor.VisitDeAllocStack(d)
+}
+
+type Push struct {
+	Op Operand
+}
+
+func NewPush(op Operand) *Push {
+	return &Push{op}
+}
+
+func (p *Push) GetType() AsmAstType {
+	return AsmPush
+}
+
+func (p *Push) Accept(visitor AsmVisitor) {
+	visitor.VisitPush(p)
+}
+
+type Call struct {
+	Identifier string
+}
+
+func NewCall(identifier string) *Call {
+	return &Call{identifier}
+}
+
+func (c *Call) GetType() AsmAstType {
+	return AsmCall
+}
+
+func (c *Call) Accept(visitor AsmVisitor) {
+	visitor.VisitCall(c)
 }
 
 type Return struct{}
