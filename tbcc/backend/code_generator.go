@@ -2,17 +2,67 @@ package backend
 
 import (
 	"fmt"
+	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/frontend"
 )
 
-type CodeGenerator struct {
-	code             string
-	use1ByteRegister bool
+type regByteMode uint
+
+const (
+	regByteMode1 regByteMode = iota
+	regByteMode4
+	regByteMode8
+)
+
+var registerNames = map[string]map[regByteMode]string{
+	RegAX: {
+		regByteMode8: "%rax",
+		regByteMode4: "%eax",
+		regByteMode1: "%al"},
+	RegCX: {
+		regByteMode8: "%rcx",
+		regByteMode4: "%ecx",
+		regByteMode1: "%cl"},
+	RegDX: {
+		regByteMode8: "%rdx",
+		regByteMode4: "%edx",
+		regByteMode1: "%dl"},
+	RegDI: {
+		regByteMode8: "%rdi",
+		regByteMode4: "%edi",
+		regByteMode1: "%dil"},
+	RegSI: {
+		regByteMode8: "%rsi",
+		regByteMode4: "%esi",
+		regByteMode1: "%sil"},
+	RegR8: {
+		regByteMode8: "%r8",
+		regByteMode4: "%r8d",
+		regByteMode1: "%r8b"},
+	RegR9: {
+		regByteMode8: "%r9",
+		regByteMode4: "%r9d",
+		regByteMode1: "%r9b"},
+	RegR10: {
+		regByteMode8: "%r10",
+		regByteMode4: "%r10d",
+		regByteMode1: "%r10b"},
+	RegR11: {
+		regByteMode8: "%r11",
+		regByteMode4: "%r11d",
+		regByteMode1: "%r11b"},
 }
 
-func NewCodeGenerator() *CodeGenerator {
+type CodeGenerator struct {
+	code   string
+	rbmode regByteMode
+	env    *frontend.Environment
+}
+
+func NewCodeGenerator(env *frontend.Environment) *CodeGenerator {
 	return &CodeGenerator{
-		code:             "",
-		use1ByteRegister: false,
+		code:   "",
+		rbmode: regByteMode4,
+		env:    env,
 	}
 }
 
@@ -30,8 +80,9 @@ func (cg *CodeGenerator) VisitProgram(p *Program) {
 }
 
 func (cg *CodeGenerator) VisitFunctionDef(f *FunctionDef) {
-	cg.writeln("\t.globl " + f.Name)
-	cg.writeln(f.Name + ":")
+	funcName := cg.getFunctionName(f.Name)
+	cg.writeln("\t.globl " + funcName)
+	cg.writeln(funcName + ":")
 	cg.writeln("\tpushq %rbp")
 	cg.writeln("\tmovq %rsp, %rbp")
 	for _, instr := range f.Instructions {
@@ -94,11 +145,12 @@ func (cg *CodeGenerator) VisitJumpCC(j *JumpCC) {
 }
 
 func (cg *CodeGenerator) VisitSetCC(s *SetCC) {
-	cg.use1ByteRegister = true
+	savedRegByteMode := cg.rbmode
+	cg.rbmode = regByteMode1
 	cg.write(fmt.Sprintf("\tset%s ", cg.getCondInstrSuffix(s.CondCode)))
 	s.Op.Accept(cg)
 	cg.writeln("")
-	cg.use1ByteRegister = false
+	cg.rbmode = savedRegByteMode
 }
 
 func (cg *CodeGenerator) VisitLabel(l *Label) {
@@ -110,18 +162,21 @@ func (cg *CodeGenerator) VisitAllocStack(a *AllocStack) {
 }
 
 func (cg *CodeGenerator) VisitDeAllocStack(d *DeAllocStack) {
-	//TODO implement me
-	panic("implement me")
+	cg.writeln(fmt.Sprintf("\taddq $%d, %%rsp", d.N))
 }
 
 func (cg *CodeGenerator) VisitPush(p *Push) {
-	//TODO implement me
-	panic("implement me")
+	savedRegByteMode := cg.rbmode
+	cg.rbmode = regByteMode8
+	cg.write("\tpushq ")
+	p.Op.Accept(cg)
+	cg.writeln("")
+	cg.rbmode = savedRegByteMode
 }
 
 func (cg *CodeGenerator) VisitCall(c *Call) {
-	//TODO implement me
-	panic("implement me")
+	funcName := cg.getFunctionName(c.Identifier)
+	cg.writeln(fmt.Sprintf("\tcall %s", funcName))
 }
 
 func (cg *CodeGenerator) VisitReturn() {
@@ -172,37 +227,7 @@ func (cg *CodeGenerator) VisitImmediate(i *Immediate) {
 }
 
 func (cg *CodeGenerator) VisitRegister(r *Register) {
-	if !cg.use1ByteRegister {
-		switch r.Name {
-		case RegAX:
-			cg.write("%eax")
-		case RegCX:
-			cg.write("%ecx")
-		case RegDX:
-			cg.write("%edx")
-		case RegR10:
-			cg.write("%r10d")
-		case RegR11:
-			cg.write("%r11d")
-		default:
-			panic("unknown register name")
-		}
-	} else {
-		switch r.Name {
-		case RegAX:
-			cg.write("%al")
-		case RegCX:
-			cg.write("%cl")
-		case RegDX:
-			cg.write("%dl")
-		case RegR10:
-			cg.write("%r10b")
-		case RegR11:
-			cg.write("%r11b")
-		default:
-			panic("unknown register name")
-		}
-	}
+	cg.write(registerNames[r.Name][cg.rbmode])
 }
 
 func (cg *CodeGenerator) VisitPseudoReg(*PseudoReg) {
@@ -211,6 +236,30 @@ func (cg *CodeGenerator) VisitPseudoReg(*PseudoReg) {
 
 func (cg *CodeGenerator) VisitStack(s *Stack) {
 	cg.write(fmt.Sprintf("%d(%%rbp)", s.N))
+}
+
+func (cg *CodeGenerator) getFunctionName(funcName string) string {
+	if cg.isOwnFunction(funcName) {
+		return funcName
+	}
+	return funcName + "@PLT" // Linux specific: Procedure Linkage Table
+}
+
+func (cg *CodeGenerator) isOwnFunction(funcName string) bool {
+
+	entry, _ := cg.env.Get(funcName)
+	if entry == nil {
+		return false
+	}
+
+	typeInfo := entry.GetTypeInfo()
+	if typeInfo.GetTypeId() != frontend.TypeFunc {
+		return false
+	}
+
+	funcInfo := typeInfo.(*frontend.FuncInfo)
+
+	return funcInfo.IsDefined
 }
 
 func (cg *CodeGenerator) getCondInstrSuffix(conditionCode ConditionCode) string {

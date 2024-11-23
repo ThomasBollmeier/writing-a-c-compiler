@@ -501,7 +501,7 @@ func runParserWithCode(t *testing.T, code string, expectError bool) {
 	parser := NewParser(tokens)
 	program, err := parser.ParseProgram()
 	if err == nil {
-		program, err = AnalyzeSemantics(program, NewNameCreator())
+		program, _, err = AnalyzeSemantics(program, NewNameCreator())
 	}
 
 	if !expectError {

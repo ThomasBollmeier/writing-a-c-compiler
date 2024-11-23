@@ -12,7 +12,7 @@ type idResolverResult struct {
 
 type identifierResolver struct {
 	nameCreator     NameCreator
-	env             *environment
+	env             *Environment
 	labelMap        map[string]string
 	functionNesting int
 	result          idResolverResult
@@ -21,7 +21,7 @@ type identifierResolver struct {
 func newIdentifierResolver(nameCreator NameCreator) *identifierResolver {
 	return &identifierResolver{
 		nameCreator:     nameCreator,
-		env:             newEnvironment(nil),
+		env:             NewEnvironment(nil),
 		labelMap:        make(map[string]string),
 		functionNesting: 0,
 		result:          idResolverResult{nil, nil},
@@ -66,7 +66,7 @@ func (ir *identifierResolver) VisitFunction(f *Function) {
 		return
 	}
 
-	entry, env := ir.env.get(f.Name)
+	entry, env := ir.env.Get(f.Name)
 	if env != nil {
 		if ir.env == env && entry.category != idCatFunction {
 			ir.setResult(nil, errors.New(fmt.Sprintf("%s is already defined", f.Name)))
@@ -76,12 +76,12 @@ func (ir *identifierResolver) VisitFunction(f *Function) {
 	ir.env.set(f.Name, f.Name, true, idCatFunction, nil)
 
 	if f.Body != nil {
-		ir.env = newEnvironment(ir.env)
+		ir.env = NewEnvironment(ir.env)
 		ir.functionNesting++
 
 		for _, param := range f.Params {
 			uniqueName := ir.nameCreator.VarName()
-			ir.env.set(param.Name, uniqueName, false, idCatParameter, &intInfo{})
+			ir.env.set(param.Name, uniqueName, false, idCatParameter, &IntInfo{})
 			newParams = append(newParams, Parameter{
 				Name: uniqueName,
 				TyId: param.TyId,
@@ -124,7 +124,7 @@ func allParamsUnique(params []Parameter) bool {
 
 func (ir *identifierResolver) VisitVarDecl(v *VarDecl) {
 
-	entry, definingEnv := ir.env.get(v.Name)
+	entry, definingEnv := ir.env.Get(v.Name)
 	alreadyDefined := false
 	if definingEnv != nil {
 		if definingEnv == ir.env {
@@ -139,7 +139,7 @@ func (ir *identifierResolver) VisitVarDecl(v *VarDecl) {
 	}
 
 	uniqueName := ir.nameCreator.VarName()
-	ir.env.set(v.Name, uniqueName, false, idCatVariable, &intInfo{})
+	ir.env.set(v.Name, uniqueName, false, idCatVariable, &IntInfo{})
 
 	var newInitValue AST
 	var err error
@@ -202,7 +202,7 @@ func (ir *identifierResolver) VisitBlockStmt(b *BlockStmt) {
 
 	var newItems []BodyItem
 
-	ir.env = newEnvironment(ir.env)
+	ir.env = NewEnvironment(ir.env)
 
 	for _, item := range b.Items {
 		newItem, err := ir.evalAst(item)
@@ -271,7 +271,7 @@ func (ir *identifierResolver) VisitForStmt(f *ForStmt) {
 	var newCondition Expression
 	var newPost Expression
 
-	ir.env = newEnvironment(ir.env)
+	ir.env = NewEnvironment(ir.env)
 
 	defer func() {
 		ir.env = ir.env.getParent()
@@ -351,7 +351,7 @@ func (ir *identifierResolver) VisitInteger(i *IntegerLiteral) {
 }
 
 func (ir *identifierResolver) VisitVariable(v *Variable) {
-	uniqueName, err := ir.env.lookup(v.Name)
+	uniqueName, err := ir.env.Lookup(v.Name)
 	if err != nil {
 		ir.setResult(nil, err)
 		return
@@ -362,7 +362,7 @@ func (ir *identifierResolver) VisitVariable(v *Variable) {
 func (ir *identifierResolver) VisitFunctionCall(f *FunctionCall) {
 	var newArgs []Expression
 
-	entry, definingEnv := ir.env.get(f.Callee)
+	entry, definingEnv := ir.env.Get(f.Callee)
 	if definingEnv == nil || entry.category != idCatFunction {
 		ir.setResult(nil,
 			errors.New(fmt.Sprintf("%s is not a function", f.Callee)))

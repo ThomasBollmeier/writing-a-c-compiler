@@ -3,8 +3,11 @@ package backend
 import (
 	"fmt"
 	"github.com/thomasbollmeier/writing-a-c-compiler/tbcc/tacky"
+	"math"
 	"slices"
 )
+
+var argRegisters = []string{RegDI, RegSI, RegDX, RegCX, RegR8, RegR9}
 
 type Translator struct{}
 
@@ -24,8 +27,31 @@ func (t *Translator) Translate(program *tacky.Program) *Program {
 }
 
 func (t *Translator) translateFunctionDef(fun tacky.Function) *FunctionDef {
+	var instructions []Instruction
 	name := fun.Ident
-	instructions := t.translateAllInstructions(fun.Body)
+
+	numArgRegisters := len(argRegisters)
+	numParams := len(fun.Parameters)
+
+	if numParams <= numArgRegisters {
+		for i, param := range fun.Parameters {
+			regName := argRegisters[i]
+			instructions = append(instructions, NewMov(NewRegister(regName), NewPseudoReg(param)))
+		}
+	} else {
+		for i := 0; i < numArgRegisters; i++ {
+			regName := argRegisters[i]
+			param := fun.Parameters[i]
+			instructions = append(instructions, NewMov(NewRegister(regName), NewPseudoReg(param)))
+		}
+		for i, param := range fun.Parameters[numArgRegisters:] {
+			offset := 8 + (i+1)*8
+			instructions = append(instructions, NewMov(NewStack(offset), NewPseudoReg(param)))
+		}
+	}
+
+	instructions = append(instructions, t.translateAllInstructions(fun.Body)...)
+
 	return NewFunctionDef(name, instructions)
 }
 
@@ -130,7 +156,6 @@ func (t *Translator) translateFunctionCall(funCall *tacky.FunctionCall) []Instru
 	var stackArgs []tacky.Value
 	var stackPadding int
 
-	argRegisters := []string{RegDI, RegSI, RegDX, RegCX, RegR8, RegR9}
 	numRegs := len(argRegisters)
 	numArgs := len(funCall.Args)
 
@@ -476,6 +501,8 @@ func (ia *InstructionAdapter) VisitProgram(p *Program) {
 
 func (ia *InstructionAdapter) VisitFunctionDef(f *FunctionDef) {
 	stackSize := ia.stackSizes[f.Name]
+	// round up to next multiple of 16 for stack alignment:
+	stackSize = int(math.Ceil(float64(stackSize)/16.0) * 16.0)
 	newInstructions := []Instruction{NewAllocStack(stackSize)}
 	for _, instruction := range f.Instructions {
 		newInstructions = append(newInstructions, ia.eval(instruction).([]Instruction)...)

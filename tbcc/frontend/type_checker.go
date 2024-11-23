@@ -6,11 +6,11 @@ import (
 )
 
 type typeChecker struct {
-	env       *environment
+	env       *Environment
 	errorList []error
 }
 
-func newTypeChecker(env *environment) *typeChecker {
+func newTypeChecker(env *Environment) *typeChecker {
 	return &typeChecker{
 		env:       env,
 		errorList: []error{},
@@ -30,13 +30,13 @@ func (tc *typeChecker) VisitProgram(p *Program) {
 }
 
 func (tc *typeChecker) VisitFunction(f *Function) {
-	entry, _ := tc.env.getGlobal().get(f.Name)
+	entry, _ := tc.env.getGlobal().Get(f.Name)
 
 	if entry == nil {
 		tc.env.set(f.Name, f.Name, true, idCatFunction,
-			&funcInfo{
-				numParams: len(f.Params),
-				isDefined: f.Body != nil,
+			&FuncInfo{
+				NumParams: len(f.Params),
+				IsDefined: f.Body != nil,
 			})
 	} else {
 		for {
@@ -45,29 +45,29 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 					errors.New(fmt.Sprintf("%s defined as a non-function", f.Name)))
 				break
 			}
-			fnInfo := entry.typeInfo.(*funcInfo)
-			if fnInfo.numParams != len(f.Params) {
+			fnInfo := entry.typeInfo.(*FuncInfo)
+			if fnInfo.NumParams != len(f.Params) {
 				tc.errorList = append(tc.errorList,
 					errors.New(fmt.Sprintf("%s is already declared with different signature", f.Name)))
 				break
 			}
-			if fnInfo.isDefined && f.Body != nil {
+			if fnInfo.IsDefined && f.Body != nil {
 				tc.errorList = append(tc.errorList,
 					errors.New(fmt.Sprintf("%s is already defined", f.Name)))
 				break
 			}
 			if f.Body != nil {
-				fnInfo.isDefined = true
+				fnInfo.IsDefined = true
 			}
 			break
 		}
 	}
 
 	if f.Body != nil {
-		tc.env = newEnvironment(tc.env)
+		tc.env = NewEnvironment(tc.env)
 
 		for _, param := range f.Params {
-			tc.env.set(param.Name, param.Name, false, idCatParameter, &intInfo{})
+			tc.env.set(param.Name, param.Name, false, idCatParameter, &IntInfo{})
 		}
 
 		f.Body.Accept(tc)
@@ -77,7 +77,7 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 }
 
 func (tc *typeChecker) VisitVarDecl(v *VarDecl) {
-	tc.env.set(v.Name, v.Name, false, idCatVariable, &intInfo{})
+	tc.env.set(v.Name, v.Name, false, idCatVariable, &IntInfo{})
 
 	if v.InitValue != nil {
 		v.InitValue.Accept(tc)
@@ -103,7 +103,7 @@ func (tc *typeChecker) VisitIfStmt(i *IfStmt) {
 }
 
 func (tc *typeChecker) VisitBlockStmt(b *BlockStmt) {
-	tc.env = newEnvironment(tc.env)
+	tc.env = NewEnvironment(tc.env)
 	for _, item := range b.Items {
 		item.Accept(tc)
 	}
@@ -155,23 +155,23 @@ func (tc *typeChecker) VisitNullStmt() {}
 func (tc *typeChecker) VisitInteger(*IntegerLiteral) {}
 
 func (tc *typeChecker) VisitVariable(v *Variable) {
-	entry, _ := tc.env.get(v.Name)
+	entry, _ := tc.env.Get(v.Name)
 	if entry != nil && entry.category != idCatVariable && entry.category != idCatParameter {
 		tc.errorList = append(tc.errorList, errors.New(fmt.Sprintf("%s defined as a non-variable", v.Name)))
 	}
 }
 
 func (tc *typeChecker) VisitFunctionCall(f *FunctionCall) {
-	entry, _ := tc.env.get(f.Callee)
+	entry, _ := tc.env.Get(f.Callee)
 	if entry != nil {
 		if entry.category != idCatFunction {
 			tc.errorList = append(tc.errorList, errors.New(fmt.Sprintf("%s is not a function", f.Callee)))
 		} else {
-			fnInfo := entry.typeInfo.(*funcInfo)
-			if len(f.Args) != fnInfo.numParams {
+			fnInfo := entry.typeInfo.(*FuncInfo)
+			if len(f.Args) != fnInfo.NumParams {
 				tc.errorList = append(tc.errorList,
 					errors.New(fmt.Sprintf("%s: #arguments <> #params (%d <> %d)",
-						f.Callee, len(f.Args), fnInfo.numParams)))
+						f.Callee, len(f.Args), fnInfo.NumParams)))
 			}
 		}
 	}

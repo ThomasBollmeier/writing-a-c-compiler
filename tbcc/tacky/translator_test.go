@@ -106,7 +106,7 @@ func translate(code string) *Program {
 	tokens, _ := frontend.Tokenize(code)
 	parser := frontend.NewParser(tokens)
 	ast, _ := parser.ParseProgram()
-	ast, _ = frontend.AnalyzeSemantics(ast, nameCreator)
+	ast, _, _ = frontend.AnalyzeSemantics(ast, nameCreator)
 	translator := NewTranslator(nameCreator)
 	return translator.Translate(ast)
 }

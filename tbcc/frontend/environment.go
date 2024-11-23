@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-type environment struct {
-	parent   *environment
-	identMap map[string]envEntry
+type Environment struct {
+	parent   *Environment
+	identMap map[string]EnvEntry
 }
 
 type identCategory int
@@ -18,25 +18,29 @@ const (
 	idCatParameter
 )
 
-type envEntry struct {
+type EnvEntry struct {
 	uniqueName string
 	isExternal bool
 	category   identCategory
-	typeInfo   typeInfo
+	typeInfo   TypeInfo
 }
 
-func newEnvironment(parent *environment) *environment {
-	return &environment{
+func (ee *EnvEntry) GetTypeInfo() TypeInfo {
+	return ee.typeInfo
+}
+
+func NewEnvironment(parent *Environment) *Environment {
+	return &Environment{
 		parent:   parent,
-		identMap: make(map[string]envEntry),
+		identMap: make(map[string]EnvEntry),
 	}
 }
 
-func (env *environment) getParent() *environment {
+func (env *Environment) getParent() *Environment {
 	return env.parent
 }
 
-func (env *environment) getGlobal() *environment {
+func (env *Environment) getGlobal() *Environment {
 	ret := env
 	for {
 		if ret.parent == nil {
@@ -46,14 +50,14 @@ func (env *environment) getGlobal() *environment {
 	}
 }
 
-func (env *environment) set(
+func (env *Environment) set(
 	name string,
 	uniqueName string,
 	isExternal bool,
 	category identCategory,
-	typeInfo typeInfo,
+	typeInfo TypeInfo,
 ) {
-	entry := envEntry{
+	entry := EnvEntry{
 		uniqueName: uniqueName,
 		isExternal: isExternal,
 		category:   category,
@@ -63,27 +67,27 @@ func (env *environment) set(
 	env.identMap[name] = entry
 
 	// Externally linked names must be added to
-	// the global environment as well
+	// the global Environment as well
 	if isExternal {
 		env.getGlobal().identMap[name] = entry
 	}
 
 }
 
-func (env *environment) get(name string) (*envEntry, *environment) {
+func (env *Environment) Get(name string) (*EnvEntry, *Environment) {
 	ret, ok := env.identMap[name]
 	if ok {
 		return &ret, env
 	}
 	if env.parent != nil {
-		return env.parent.get(name)
+		return env.parent.Get(name)
 	}
 
 	return nil, nil
 }
 
-func (env *environment) lookup(name string) (string, error) {
-	entry, definingEnv := env.get(name)
+func (env *Environment) Lookup(name string) (string, error) {
+	entry, definingEnv := env.Get(name)
 	if definingEnv == nil {
 		return "", errors.New(fmt.Sprintf("identifier '%s' is not defined", name))
 	}

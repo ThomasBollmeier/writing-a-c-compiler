@@ -7,31 +7,31 @@ const (
 	TypeFunc
 )
 
-type typeInfo interface {
-	getTypeId() TypeId
-	equal(other typeInfo) bool
+type TypeInfo interface {
+	GetTypeId() TypeId
+	Equal(other TypeInfo) bool
 }
 
-type intInfo struct{}
+type IntInfo struct{}
 
-func (i *intInfo) getTypeId() TypeId {
+func (i *IntInfo) GetTypeId() TypeId {
 	return TypeInt
 }
 
-func (i *intInfo) equal(typeInfo) bool {
+func (i *IntInfo) Equal(TypeInfo) bool {
 	return true
 }
 
-type funcInfo struct {
-	numParams int
-	isDefined bool
+type FuncInfo struct {
+	NumParams int
+	IsDefined bool
 }
 
-func (f *funcInfo) getTypeId() TypeId {
+func (f *FuncInfo) GetTypeId() TypeId {
 	return TypeFunc
 }
 
-func (f *funcInfo) equal(other typeInfo) bool {
-	otherFunc := other.(*funcInfo)
-	return f.numParams == otherFunc.numParams
+func (f *FuncInfo) Equal(other TypeInfo) bool {
+	otherFunc := other.(*FuncInfo)
+	return f.NumParams == otherFunc.NumParams
 }

@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "tbcc sourcefile",
 	Short:   "A compiler for a simplified version of C",
 	Long:    `TBCC is a compiler for a simplified version of C.`,
-	Version: "0.9.3",
+	Version: "0.9.4",
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := run(args)
@@ -141,7 +141,7 @@ func compile(preProcessedFile string, options Options) (string, error) {
 
 	// Semantic analysis
 	nameCreator := frontend.NewNameCreator()
-	program, err = frontend.AnalyzeSemantics(program, nameCreator)
+	program, globalEnv, err := frontend.AnalyzeSemantics(program, nameCreator)
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +165,7 @@ func compile(preProcessedFile string, options Options) (string, error) {
 	}
 
 	// emit code
-	assembly := backend.NewCodeGenerator().GenerateCode(*asmProgram)
+	assembly := backend.NewCodeGenerator(globalEnv).GenerateCode(*asmProgram)
 	assemblyFile := stripSuffix(preProcessedFile) + ".s"
 	err = os.WriteFile(assemblyFile, []byte(assembly), 0666)
 
