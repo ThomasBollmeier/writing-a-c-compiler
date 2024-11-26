@@ -145,6 +145,21 @@ func TestTokenize(t *testing.T) {
 			false,
 		},
 		{
+			"extern",
+			args{
+				readTestCode("extern.c"),
+			},
+			[]TokenType{
+				TokTypeExtern,
+				TokTypeInt,
+				TokTypeIdentifier,
+				TokTypeEq,
+				TokTypeIntConstant,
+				TokTypeSemicolon,
+			},
+			false,
+		},
+		{
 			"invalid @ sign",
 			args{
 				readTestCode("at_sign.c"),

@@ -10,6 +10,14 @@ type Environment struct {
 	identMap map[string]EnvEntry
 }
 
+type linkage int
+
+const (
+	linkNone linkage = iota
+	linkInternal
+	linkExternal
+)
+
 type identCategory int
 
 const (
@@ -20,7 +28,7 @@ const (
 
 type EnvEntry struct {
 	uniqueName string
-	isExternal bool
+	linkage    linkage
 	category   identCategory
 	typeInfo   TypeInfo
 }
@@ -53,13 +61,13 @@ func (env *Environment) getGlobal() *Environment {
 func (env *Environment) set(
 	name string,
 	uniqueName string,
-	isExternal bool,
+	linkage linkage,
 	category identCategory,
 	typeInfo TypeInfo,
 ) {
 	entry := EnvEntry{
 		uniqueName: uniqueName,
-		isExternal: isExternal,
+		linkage:    linkage,
 		category:   category,
 		typeInfo:   typeInfo,
 	}
@@ -68,7 +76,7 @@ func (env *Environment) set(
 
 	// Externally linked names must be added to
 	// the global Environment as well
-	if isExternal {
+	if linkage == linkExternal {
 		env.getGlobal().identMap[name] = entry
 	}
 

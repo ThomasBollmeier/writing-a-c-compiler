@@ -33,7 +33,7 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 	entry, _ := tc.env.getGlobal().Get(f.Name)
 
 	if entry == nil {
-		tc.env.set(f.Name, f.Name, true, idCatFunction,
+		tc.env.set(f.Name, f.Name, linkExternal, idCatFunction,
 			&FuncInfo{
 				NumParams: len(f.Params),
 				IsDefined: f.Body != nil,
@@ -67,7 +67,7 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 		tc.env = NewEnvironment(tc.env)
 
 		for _, param := range f.Params {
-			tc.env.set(param.Name, param.Name, false, idCatParameter, &IntInfo{})
+			tc.env.set(param.Name, param.Name, linkNone, idCatParameter, &IntInfo{})
 		}
 
 		f.Body.Accept(tc)
@@ -77,7 +77,7 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 }
 
 func (tc *typeChecker) VisitVarDecl(v *VarDecl) {
-	tc.env.set(v.Name, v.Name, false, idCatVariable, &IntInfo{})
+	tc.env.set(v.Name, v.Name, linkNone, idCatVariable, &IntInfo{})
 
 	if v.InitValue != nil {
 		v.InitValue.Accept(tc)

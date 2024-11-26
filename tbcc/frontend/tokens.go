@@ -61,6 +61,8 @@ const (
 	TokTypeSwitch
 	TokTypeCase
 	TokTypeDefault
+	TokTypeExtern
+	TokTypeStatic
 )
 
 var tokenTypeToRegexStr = map[TokenType]string{
@@ -124,6 +126,8 @@ var strToKeyword = map[string]TokenType{
 	"switch":   TokTypeSwitch,
 	"case":     TokTypeCase,
 	"default":  TokTypeDefault,
+	"extern":   TokTypeExtern,
+	"static":   TokTypeStatic,
 }
 
 type Associativity int

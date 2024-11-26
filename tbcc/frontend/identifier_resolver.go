@@ -73,7 +73,7 @@ func (ir *identifierResolver) VisitFunction(f *Function) {
 			return
 		}
 	}
-	ir.env.set(f.Name, f.Name, true, idCatFunction, nil)
+	ir.env.set(f.Name, f.Name, linkExternal, idCatFunction, nil)
 
 	if f.Body != nil {
 		ir.env = NewEnvironment(ir.env)
@@ -81,7 +81,7 @@ func (ir *identifierResolver) VisitFunction(f *Function) {
 
 		for _, param := range f.Params {
 			uniqueName := ir.nameCreator.VarName()
-			ir.env.set(param.Name, uniqueName, false, idCatParameter, &IntInfo{})
+			ir.env.set(param.Name, uniqueName, linkNone, idCatParameter, &IntInfo{})
 			newParams = append(newParams, Parameter{
 				Name: uniqueName,
 				TyId: param.TyId,
@@ -139,7 +139,7 @@ func (ir *identifierResolver) VisitVarDecl(v *VarDecl) {
 	}
 
 	uniqueName := ir.nameCreator.VarName()
-	ir.env.set(v.Name, uniqueName, false, idCatVariable, &IntInfo{})
+	ir.env.set(v.Name, uniqueName, linkNone, idCatVariable, &IntInfo{})
 
 	var newInitValue AST
 	var err error
