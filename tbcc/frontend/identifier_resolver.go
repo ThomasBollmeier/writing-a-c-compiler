@@ -37,17 +37,17 @@ func (ir *identifierResolver) resolve(program *Program) (*Program, error) {
 }
 
 func (ir *identifierResolver) VisitProgram(p *Program) {
-	var newFunctions []Function
+	var newDeclarations []Declaration
 
-	for _, fun := range p.Functions {
-		ast, err := ir.evalAst(&fun)
+	for _, decl := range p.Declarations {
+		ast, err := ir.evalAst(decl)
 		if err != nil {
 			return
 		}
-		newFunctions = append(newFunctions, *ast.(*Function))
+		newDeclarations = append(newDeclarations, ast)
 	}
 
-	ir.setResult(&Program{newFunctions}, nil)
+	ir.setResult(&Program{newDeclarations}, nil)
 }
 
 func (ir *identifierResolver) VisitFunction(f *Function) {
@@ -153,7 +153,7 @@ func (ir *identifierResolver) VisitVarDecl(v *VarDecl) {
 		newInitValue = nil
 	}
 
-	ir.setResult(&VarDecl{uniqueName, newInitValue}, nil)
+	ir.setResult(&VarDecl{uniqueName, newInitValue, v.StorageClass}, nil)
 }
 
 func (ir *identifierResolver) VisitReturn(r *ReturnStmt) {

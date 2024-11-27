@@ -24,7 +24,7 @@ func (tc *typeChecker) check(p *Program) []error {
 }
 
 func (tc *typeChecker) VisitProgram(p *Program) {
-	for _, f := range p.Functions {
+	for _, f := range p.Declarations {
 		f.Accept(tc)
 	}
 }

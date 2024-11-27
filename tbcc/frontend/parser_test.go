@@ -430,6 +430,18 @@ func TestParser_ParameterShadowsFunction(t *testing.T) {
 	runParserWithCode(t, code, false)
 }
 
+func TestParser_ExternFunction(t *testing.T) {
+	code := `
+		extern int a(void);
+
+		int static answer = 42;
+		
+		int main(void) {
+			return a() + answer;
+		}`
+	runParserWithCode(t, code, false)
+}
+
 func TestParser_ParseLabelMultiple(t *testing.T) {
 	code := `int main(void) {
  	   	int a = 42;

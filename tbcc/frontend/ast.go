@@ -61,8 +61,20 @@ type AstVisitor interface {
 	VisitConditional(c *Conditional)
 }
 
+type StorageClass int
+
+const (
+	StorageNone StorageClass = iota
+	StorageStatic
+	StorageExtern
+)
+
+type Declaration interface {
+	AST
+}
+
 type Program struct {
-	Functions []Function
+	Declarations []Declaration
 }
 
 func (p *Program) GetType() AstType {
@@ -78,9 +90,10 @@ type Parameter struct {
 }
 
 type Function struct {
-	Name   string
-	Params []Parameter
-	Body   *BlockStmt
+	Name         string
+	Params       []Parameter
+	Body         *BlockStmt
+	StorageClass StorageClass
 }
 
 func (f *Function) GetType() AstType {
@@ -96,8 +109,9 @@ type BodyItem interface {
 }
 
 type VarDecl struct {
-	Name      string
-	InitValue Expression
+	Name         string
+	InitValue    Expression
+	StorageClass StorageClass
 }
 
 func (v *VarDecl) GetType() AstType {

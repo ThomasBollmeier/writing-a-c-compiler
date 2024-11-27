@@ -17,9 +17,12 @@ func NewTranslator(nameCreator frontend.NameCreator) *Translator {
 func (t *Translator) Translate(program *frontend.Program) *Program {
 	var funs []Function
 
-	for _, fun := range program.Functions {
-		if fun.Body != nil {
-			funs = append(funs, t.translateFunction(&fun))
+	for _, decl := range program.Declarations {
+		fun, ok := decl.(*frontend.Function)
+		if !ok {
+			if fun.Body != nil {
+				funs = append(funs, t.translateFunction(fun))
+			}
 		}
 	}
 

@@ -108,7 +108,7 @@ func (ll *loopLabeler) popLabel() *labelInfo {
 }
 
 func (ll *loopLabeler) VisitProgram(p *Program) {
-	for _, fun := range p.Functions {
+	for _, fun := range p.Declarations {
 		fun.Accept(ll)
 	}
 }

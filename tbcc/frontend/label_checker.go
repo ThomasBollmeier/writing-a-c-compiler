@@ -43,7 +43,7 @@ func (lc *labelChecker) check(program *Program) error {
 }
 
 func (lc *labelChecker) VisitProgram(p *Program) {
-	for _, fun := range p.Functions {
+	for _, fun := range p.Declarations {
 		fun.Accept(lc)
 	}
 }

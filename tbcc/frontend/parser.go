@@ -21,25 +21,41 @@ func NewParser(tokens []Token) *Parser {
 }
 
 func (p *Parser) ParseProgram() (*Program, error) {
-	var fs []Function
+	var declarations []Declaration
 
 	for !p.endOfInput() {
-		f, err := p.parseFunction()
+		decl, err := p.parseDeclaration()
 		if err != nil {
 			return nil, err
 		}
-		fs = append(fs, *f)
+		declarations = append(declarations, decl)
 	}
 
-	return &Program{fs}, nil
+	return &Program{declarations}, nil
 }
 
-func (p *Parser) parseFunction() (*Function, error) {
-
-	_, err := p.consume(TokTypeInt) // only integer types are supported for now
+func (p *Parser) parseDeclaration() (Declaration, error) {
+	storageClass, err := p.parseSpecifiers()
 	if err != nil {
 		return nil, err
 	}
+
+	nextTokens := p.peekN(2)
+	if len(nextTokens) < 2 {
+		return nil, errors.New("expected declaration")
+	}
+	if nextTokens[0].tokenType != TokTypeIdentifier {
+		return nil, errors.New("expected identifier")
+	}
+
+	if nextTokens[1].tokenType == TokTypeLeftParen {
+		return p.parseFunction(storageClass)
+	} else {
+		return p.parseVarDeclaration(storageClass)
+	}
+}
+
+func (p *Parser) parseFunction(storageClass StorageClass) (*Function, error) {
 
 	token, err := p.consume(TokTypeIdentifier)
 	if err != nil {
@@ -105,10 +121,61 @@ func (p *Parser) parseFunction() (*Function, error) {
 	}
 
 	return &Function{
-		Name:   name,
-		Params: params,
-		Body:   body,
+		Name:         name,
+		Params:       params,
+		Body:         body,
+		StorageClass: storageClass,
 	}, nil
+}
+
+func (p *Parser) parseSpecifiers() (StorageClass, error) {
+	var expectedTokenTypes = []TokenType{TokTypeInt, TokTypeExtern, TokTypeStatic}
+	var storageClass = StorageNone
+
+	for {
+		token, err := p.consume(expectedTokenTypes...)
+		if err != nil {
+			break
+		}
+
+		switch token.tokenType {
+		case TokTypeExtern:
+			if storageClass == StorageNone {
+				storageClass = StorageExtern
+			} else {
+				return storageClass, errors.New("extern and static must not be used together")
+			}
+		case TokTypeStatic:
+			if storageClass == StorageNone {
+				storageClass = StorageStatic
+			} else {
+				return storageClass, errors.New("extern and static must not be used together")
+			}
+		default:
+		}
+
+		tokenTypes := expectedTokenTypes
+		expectedTokenTypes = []TokenType{}
+		for _, tokenType := range tokenTypes {
+			if tokenType != token.tokenType {
+				expectedTokenTypes = append(expectedTokenTypes, tokenType)
+			}
+		}
+	}
+
+	isTypeSpecified := false
+	for _, tokenType := range expectedTokenTypes {
+		if tokenType == TokTypeInt {
+			isTypeSpecified = true
+			break
+		}
+	}
+
+	if isTypeSpecified {
+		return StorageNone, errors.New("type is not specified")
+	}
+
+	return storageClass, nil
 }
 
 func (p *Parser) parseParameter() (*Parameter, error) {
@@ -161,30 +228,21 @@ func (p *Parser) parseBlockStmt() (*BlockStmt, error) {
 }
 
 func (p *Parser) parseBodyItem() (BodyItem, error) {
-	tokens := p.peekN(3)
-
-	if len(tokens) == 3 {
-		if tokens[0].tokenType == TokTypeInt && tokens[1].tokenType == TokTypeIdentifier {
-			if tokens[2].tokenType == TokTypeLeftParen {
-				return p.parseFunction()
-			} else {
-				return p.parseVarDeclaration()
-			}
-		} else {
-			return p.parseStatement()
-		}
-	} else {
+	token, err := p.peek()
+	if err != nil {
+		return nil, err
+	}
+	switch token.tokenType {
+	case TokTypeExtern, TokTypeStatic, TokTypeInt:
+		return p.parseDeclaration()
+	default:
 		return p.parseStatement()
 	}
 }
 
-func (p *Parser) parseVarDeclaration() (*VarDecl, error) {
+func (p *Parser) parseVarDeclaration(storageClass StorageClass) (*VarDecl, error) {
 	var ret *VarDecl
 
-	_, err := p.consume(TokTypeInt)
-	if err != nil {
-		return nil, err
-	}
 	ident, err := p.consume(TokTypeIdentifier)
 	if err != nil {
 		return nil, err
@@ -205,13 +263,15 @@ func (p *Parser) parseVarDeclaration() (*VarDecl, error) {
 			return nil, err
 		}
 		ret = &VarDecl{
-			Name:      ident.lexeme,
-			InitValue: initValue,
+			Name:         ident.lexeme,
+			InitValue:    initValue,
+			StorageClass: storageClass,
 		}
 	case TokTypeSemicolon:
 		ret = &VarDecl{
-			Name:      ident.lexeme,
-			InitValue: nil,
+			Name:         ident.lexeme,
+			InitValue:    nil,
+			StorageClass: storageClass,
 		}
 	default:
 		return nil, errors.New("unexpected token at var declaration: " + token.lexeme)
