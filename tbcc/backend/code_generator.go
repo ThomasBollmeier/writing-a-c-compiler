@@ -55,14 +55,14 @@ var registerNames = map[string]map[regByteMode]string{
 type CodeGenerator struct {
 	code   string
 	rbmode regByteMode
-	env    *frontend.Environment
+	envs   *frontend.Environments
 }
 
-func NewCodeGenerator(env *frontend.Environment) *CodeGenerator {
+func NewCodeGenerator(envs *frontend.Environments) *CodeGenerator {
 	return &CodeGenerator{
 		code:   "",
 		rbmode: regByteMode4,
-		env:    env,
+		envs:   envs,
 	}
 }
 
@@ -247,7 +247,7 @@ func (cg *CodeGenerator) getFunctionName(funcName string) string {
 
 func (cg *CodeGenerator) isOwnFunction(funcName string) bool {
 
-	entry, _ := cg.env.Get(funcName)
+	entry, _ := cg.envs.Get(funcName)
 	if entry == nil {
 		return false
 	}

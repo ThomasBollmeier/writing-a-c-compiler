@@ -7,14 +7,14 @@ import (
 
 type Environment struct {
 	parent   *Environment
-	identMap map[string]EnvEntry
+	identMap map[string]*EnvEntry
 }
 
 type linkage int
 
 const (
 	linkNone linkage = iota
-	linkInternal
+	linkStatic
 	linkExternal
 )
 
@@ -40,7 +40,7 @@ func (ee *EnvEntry) GetTypeInfo() TypeInfo {
 func NewEnvironment(parent *Environment) *Environment {
 	return &Environment{
 		parent:   parent,
-		identMap: make(map[string]EnvEntry),
+		identMap: make(map[string]*EnvEntry),
 	}
 }
 
@@ -65,7 +65,7 @@ func (env *Environment) set(
 	category identCategory,
 	typeInfo TypeInfo,
 ) {
-	entry := EnvEntry{
+	entry := &EnvEntry{
 		uniqueName: uniqueName,
 		linkage:    linkage,
 		category:   category,
@@ -74,18 +74,12 @@ func (env *Environment) set(
 
 	env.identMap[name] = entry
 
-	// Externally linked names must be added to
-	// the global Environment as well
-	if linkage == linkExternal {
-		env.getGlobal().identMap[name] = entry
-	}
-
 }
 
 func (env *Environment) Get(name string) (*EnvEntry, *Environment) {
 	ret, ok := env.identMap[name]
 	if ok {
-		return &ret, env
+		return ret, env
 	}
 	if env.parent != nil {
 		return env.parent.Get(name)
@@ -100,4 +94,53 @@ func (env *Environment) Lookup(name string) (string, error) {
 		return "", errors.New(fmt.Sprintf("identifier '%s' is not defined", name))
 	}
 	return entry.uniqueName, nil
+}
+
+type Environments struct {
+	Global map[string]*EnvEntry
+	Block  *Environment
+}
+
+func NewEnvironments() *Environments {
+	return &Environments{
+		Global: make(map[string]*EnvEntry),
+		Block:  NewEnvironment(nil),
+	}
+}
+
+func (envs *Environments) beginBlock() {
+	envs.Block = NewEnvironment(envs.Block)
+}
+
+func (envs *Environments) endBlock() {
+	envs.Block = envs.Block.getParent()
+}
+
+func (envs *Environments) set(
+	name string,
+	uniqueName string,
+	linkage linkage,
+	category identCategory,
+	typeInfo TypeInfo,
+) {
+	envEntry := &EnvEntry{
+		uniqueName: uniqueName,
+		linkage:    linkage,
+		category:   category,
+		typeInfo:   typeInfo,
+	}
+
+	if linkage != linkNone {
+		envs.Global[name] = envEntry
+	}
+
+	envs.Block.identMap[name] = envEntry
+}
+
+func (envs *Environments) Get(name string) (*EnvEntry, *Environment) {
+	return envs.Block.Get(name)
+}
+
+func (envs *Environments) Lookup(name string) (string, error) {
+	return envs.Block.Lookup(name)
 }

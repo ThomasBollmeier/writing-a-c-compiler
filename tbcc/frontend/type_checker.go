@@ -6,13 +6,13 @@ import (
 )
 
 type typeChecker struct {
-	env       *Environment
+	envs      *Environments
 	errorList []error
 }
 
-func newTypeChecker(env *Environment) *typeChecker {
+func newTypeChecker(envs *Environments) *typeChecker {
 	return &typeChecker{
-		env:       env,
+		envs:      envs,
 		errorList: []error{},
 	}
 }
@@ -30,10 +30,10 @@ func (tc *typeChecker) VisitProgram(p *Program) {
 }
 
 func (tc *typeChecker) VisitFunction(f *Function) {
-	entry, _ := tc.env.getGlobal().Get(f.Name)
+	entry, definingEnv := tc.envs.Get(f.Name)
 
-	if entry == nil {
-		tc.env.set(f.Name, f.Name, linkExternal, idCatFunction,
+	if entry == nil || entry.category != idCatFunction && definingEnv != tc.envs.Block {
+		tc.envs.set(f.Name, f.Name, linkExternal, idCatFunction,
 			&FuncInfo{
 				NumParams: len(f.Params),
 				IsDefined: f.Body != nil,
@@ -64,20 +64,20 @@ func (tc *typeChecker) VisitFunction(f *Function) {
 	}
 
 	if f.Body != nil {
-		tc.env = NewEnvironment(tc.env)
+		tc.envs.beginBlock()
 
 		for _, param := range f.Params {
-			tc.env.set(param.Name, param.Name, linkNone, idCatParameter, &IntInfo{})
+			tc.envs.set(param.Name, param.Name, linkNone, idCatParameter, &IntInfo{})
 		}
 
 		f.Body.Accept(tc)
 
-		tc.env = tc.env.getParent()
+		tc.envs.endBlock()
 	}
 }
 
 func (tc *typeChecker) VisitVarDecl(v *VarDecl) {
-	tc.env.set(v.Name, v.Name, linkNone, idCatVariable, &IntInfo{})
+	tc.envs.set(v.Name, v.Name, linkNone, idCatVariable, &IntInfo{})
 
 	if v.InitValue != nil {
 		v.InitValue.Accept(tc)
@@ -103,11 +103,11 @@ func (tc *typeChecker) VisitIfStmt(i *IfStmt) {
 }
 
 func (tc *typeChecker) VisitBlockStmt(b *BlockStmt) {
-	tc.env = NewEnvironment(tc.env)
+	tc.envs.beginBlock()
 	for _, item := range b.Items {
 		item.Accept(tc)
 	}
-	tc.env = tc.env.getParent()
+	tc.envs.endBlock()
 }
 
 func (tc *typeChecker) VisitGotoStmt(*GotoStmt) {}
@@ -155,14 +155,14 @@ func (tc *typeChecker) VisitNullStmt() {}
 func (tc *typeChecker) VisitInteger(*IntegerLiteral) {}
 
 func (tc *typeChecker) VisitVariable(v *Variable) {
-	entry, _ := tc.env.Get(v.Name)
+	entry, _ := tc.envs.Get(v.Name)
 	if entry != nil && entry.category != idCatVariable && entry.category != idCatParameter {
 		tc.errorList = append(tc.errorList, errors.New(fmt.Sprintf("%s defined as a non-variable", v.Name)))
 	}
 }
 
 func (tc *typeChecker) VisitFunctionCall(f *FunctionCall) {
-	entry, _ := tc.env.Get(f.Callee)
+	entry, _ := tc.envs.Get(f.Callee)
 	if entry != nil {
 		if entry.category != idCatFunction {
 			tc.errorList = append(tc.errorList, errors.New(fmt.Sprintf("%s is not a function", f.Callee)))

@@ -40,6 +40,16 @@ func (ap *AstPrinter) VisitFunction(f *Function) {
 		ap.suppressPadding = true
 		f.Body.Accept(ap)
 	}
+	ap.print("storageClass=")
+	ap.suppressPadding = true
+	switch f.StorageClass {
+	case StorageNone:
+		ap.println("none")
+	case StorageStatic:
+		ap.println("static")
+	case StorageExtern:
+		ap.println("extern")
+	}
 	ap.dedent()
 	ap.println(")")
 }
@@ -52,6 +62,16 @@ func (ap *AstPrinter) VisitVarDecl(v *VarDecl) {
 		ap.print("initValue=")
 		ap.suppressPadding = true
 		v.InitValue.Accept(ap)
+	}
+	ap.print("storageClass=")
+	ap.suppressPadding = true
+	switch v.StorageClass {
+	case StorageNone:
+		ap.println("none")
+	case StorageStatic:
+		ap.println("static")
+	case StorageExtern:
+		ap.println("extern")
 	}
 	ap.dedent()
 	ap.println(")")

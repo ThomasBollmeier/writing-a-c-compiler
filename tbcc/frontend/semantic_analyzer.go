@@ -1,6 +1,6 @@
 package frontend
 
-func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, *Environment, error) {
+func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, *Environments, error) {
 
 	labeler := newLoopLabeler(nameCreator)
 	err := labeler.addLabels(program)
@@ -14,8 +14,8 @@ func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, *Env
 		return nil, nil, err
 	}
 
-	globalEnv := NewEnvironment(nil)
-	errorList := newTypeChecker(globalEnv).check(program)
+	envs := NewEnvironments()
+	errorList := newTypeChecker(envs).check(program)
 	if len(errorList) > 0 {
 		return nil, nil, errorList[0]
 	}
@@ -26,5 +26,5 @@ func AnalyzeSemantics(program *Program, nameCreator NameCreator) (*Program, *Env
 		return nil, nil, err
 	}
 
-	return program, globalEnv, nil
+	return program, envs, nil
 }

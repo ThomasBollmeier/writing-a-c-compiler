@@ -12,11 +12,8 @@ func TestCodeGenerator_GenerateCode(t *testing.T) {
 int main(void) {
 	return ~(-42);
 }`
-	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
 
-	fmt.Print(asm)
+	generate(code)
 }
 
 func TestCodeGenerator_GenerateCode_Associativity(t *testing.T) {
@@ -24,11 +21,8 @@ func TestCodeGenerator_GenerateCode_Associativity(t *testing.T) {
 int main(void) {
     return (3 / 2 * 4) + (5 - 4 + 3);
 }`
-	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
 
-	fmt.Print(asm)
+	generate(code)
 }
 
 func TestCodeGenerator_GenerateCode_BitAnd(t *testing.T) {
@@ -36,11 +30,8 @@ func TestCodeGenerator_GenerateCode_BitAnd(t *testing.T) {
 int main(void) {
     return 3 & 5;
 }`
-	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
 
-	fmt.Print(asm)
+	generate(code)
 }
 
 func TestCodeGenerator_GenerateCode_AndFalse(t *testing.T) {
@@ -49,8 +40,8 @@ func TestCodeGenerator_GenerateCode_AndFalse(t *testing.T) {
 	}`
 
 	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
+	envs := frontend.NewEnvironments()
+	asm := NewCodeGenerator(envs).GenerateCode(*asmProgram)
 
 	fmt.Print(asm)
 }
@@ -60,11 +51,7 @@ func TestCodeGenerator_GenerateCode_SimpleFunction(t *testing.T) {
 		return param;
 	}`
 
-	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
-
-	fmt.Print(asm)
+	generate(code)
 }
 
 func TestCodeGenerator_GenerateCode_ManyArgsFunction(t *testing.T) {
@@ -77,12 +64,15 @@ func TestCodeGenerator_GenerateCode_ManyArgsFunction(t *testing.T) {
 		return mult_many(1, 2, 3, 4, 5, 6, 7, 8);
 	}`
 
+	generate(code)
+}
+
+func generate(code string) {
 	asmProgram := codeToAsm(code)
-	env := frontend.NewEnvironment(nil)
-	asm := NewCodeGenerator(env).GenerateCode(*asmProgram)
+	envs := frontend.NewEnvironments()
+	asm := NewCodeGenerator(envs).GenerateCode(*asmProgram)
 
 	fmt.Print(asm)
-
 }
 
 func codeToAsm(code string) *Program {
